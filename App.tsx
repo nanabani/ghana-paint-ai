@@ -34,6 +34,9 @@ const App: React.FC = () => {
     setAnalysisResult(null);
     setVisualizationCount(0);
     setLoadingMessage('');
+    // CRITICAL FIX: Clear previous visualization and cancel any pending requests
+    setVisualizedImage(null);
+    currentRequestRef.current = null;
     
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -84,8 +87,9 @@ const App: React.FC = () => {
       return;
     }
     
-    // Track this request and cancel any previous one
-    const requestId = colorHex;
+    // CRITICAL FIX: Include image hash in request ID to prevent collisions across different images
+    const imageHash = ImageCache.generateImageHash(base64Raw);
+    const requestId = `${imageHash}_${colorHex}`;
     currentRequestRef.current = requestId;
     
     // INSTANT UI UPDATE: Clear previous visualization immediately
@@ -98,7 +102,6 @@ const App: React.FC = () => {
       setVisualizationCount(prev => prev + 1);
       
       // Create cache key: image hash + color
-      const imageHash = ImageCache.generateImageHash(base64Raw);
       const cacheKey = `visualization_${imageHash}_${colorHex}`;
       
       // Check cache first
@@ -120,11 +123,15 @@ const App: React.FC = () => {
         return result;
       });
       
-      // Only update if this is still the current request
-      if (currentRequestRef.current === requestId) {
-        setVisualizedImage(cached);
-        setLoadingMessage('');
+      // CRITICAL FIX: Validate request ID before using cached result
+      // This prevents stale cached results from previous images
+      if (currentRequestRef.current !== requestId) {
+        // Request was cancelled, ignore result
+        return;
       }
+      
+      setVisualizedImage(cached);
+      setLoadingMessage('');
     } catch (err: any) {
       // Ignore cancellation errors silently
       if (err.message === 'Request cancelled') {

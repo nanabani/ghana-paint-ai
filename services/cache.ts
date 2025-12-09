@@ -107,13 +107,19 @@ export class ImageCache {
 
   /**
    * Generate a hash from base64 image string
+   * Improved: Samples multiple parts of the image for better uniqueness
    */
   static generateImageHash(base64: string): string {
-    // Use first 500 chars + length for quick hash
-    const sample = base64.substring(0, 500);
+    const len = base64.length;
+    // Sample from beginning, middle, and end for better uniqueness
+    const sample1 = base64.substring(0, Math.min(500, len));
+    const sample2 = len > 1000 ? base64.substring(Math.floor(len / 2), Math.floor(len / 2) + 500) : '';
+    const sample3 = len > 1500 ? base64.substring(len - 500) : '';
+    const combined = sample1 + sample2 + sample3 + len.toString();
+    
     let hash = 0;
-    for (let i = 0; i < sample.length; i++) {
-      const char = sample.charCodeAt(i);
+    for (let i = 0; i < combined.length; i++) {
+      const char = combined.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32-bit integer
     }

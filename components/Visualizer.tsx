@@ -27,6 +27,13 @@ const Visualizer: React.FC<VisualizerProps> = ({
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [isPaletteExpanded, setIsPaletteExpanded] = useState(true); // Always expanded on initial view
 
+  // Reset state when image changes (new image uploaded)
+  useEffect(() => {
+    setSelectedColor(null);
+    setActiveTab('original');
+    setArea(0);
+  }, [originalImage]);
+
   // Switch to visualized tab when new visualization is ready
   useEffect(() => {
     if (visualizedImage && selectedColor && !isVisualizing) {
