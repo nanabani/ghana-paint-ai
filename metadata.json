@@ -1,0 +1,7 @@
+{
+  "name": "GhanaPaint Pro",
+  "description": "Visualize your home's new look and get instant, accurate material lists with local installation options.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

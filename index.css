@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   GhanaPaint Pro - Design System
+   A warm, sophisticated palette with editorial elegance
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   CSS Variables - Design Tokens
+   -------------------------------------------------------------------------- */
+:root {
+  /* Core Palette */
+  --color-ink: #1c1917;
+  --color-ink-muted: #44403c;
+  --color-ink-subtle: #78716c;
+  
+  --color-paper: #faf8f5;
+  --color-paper-warm: #f5f1eb;
+  --color-paper-elevated: #ffffff;
+  
+  /* Accent - Burnt Sienna / Terracotta */
+  --color-accent: #c2410c;
+  --color-accent-hover: #9a3412;
+  --color-accent-soft: #fed7aa;
+  --color-accent-glow: rgba(194, 65, 12, 0.15);
+  
+  /* Secondary - Warm Amber */
+  --color-secondary: #b45309;
+  --color-secondary-soft: #fef3c7;
+  
+  /* Neutral Warmth */
+  --color-border: #e7e5e4;
+  --color-border-subtle: #f5f5f4;
+  --color-surface: #fafaf9;
+  
+  /* Semantic */
+  --color-success: #15803d;
+  --color-success-soft: #dcfce7;
+  --color-error: #b91c1c;
+  --color-error-soft: #fee2e2;
+  
+  /* Typography Scale */
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+  
+  /* Transitions */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+}
+
+/* --------------------------------------------------------------------------
+   Base Styles
+   -------------------------------------------------------------------------- */
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth antialiased;
+  }
+
+  body {
+    font-family: var(--font-body);
+    @apply bg-paper text-ink leading-relaxed;
+  }
+
+  ::selection {
+    @apply bg-accent-soft text-accent-hover;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Component Styles
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* Atmospheric gradient backgrounds */
+  .bg-gradient-warm {
+    background: linear-gradient(
+      180deg,
+      theme('colors.paper.DEFAULT') 0%,
+      theme('colors.paper.warm') 100%
+    );
+  }
+
+  .bg-mesh {
+    @apply bg-paper;
+    background-image: 
+      radial-gradient(at 40% 20%, rgba(194, 65, 12, 0.04) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(180, 83, 9, 0.03) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(194, 65, 12, 0.02) 0px, transparent 50%);
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    background: linear-gradient(135deg, theme('colors.accent.DEFAULT') 0%, theme('colors.secondary.DEFAULT') 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Loading skeleton shimmer */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      theme('colors.stone.100') 0%,
+      theme('colors.paper.warm') 50%,
+      theme('colors.stone.100') 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-stone-200 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-stone-300;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Utilities
+   -------------------------------------------------------------------------- */
+@layer utilities {
+  /* Animation delays */
+  .delay-1 { animation-delay: 100ms; }
+  .delay-2 { animation-delay: 200ms; }
+  .delay-3 { animation-delay: 300ms; }
+  .delay-4 { animation-delay: 400ms; }
+  .delay-5 { animation-delay: 500ms; }
+  .delay-6 { animation-delay: 600ms; }
+
+  /* Line clamps */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Animation Keyframes
+   -------------------------------------------------------------------------- */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Form Elements
+   -------------------------------------------------------------------------- */
+input[type="number"],
+input[type="text"] {
+  font-family: var(--font-body);
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* --------------------------------------------------------------------------
+   Media Queries
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
