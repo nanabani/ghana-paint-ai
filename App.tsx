@@ -293,7 +293,7 @@ const App: React.FC = () => {
             © {new Date().getFullYear()} GhanaPaint Pro
           </p>
           <p className="text-ink-subtle text-xs sm:text-sm">
-            Built for Ghanaian homeowners
+            Built with AI
           </p>
         </div>
       </footer>
