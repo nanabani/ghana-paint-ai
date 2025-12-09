@@ -202,11 +202,9 @@ const App: React.FC = () => {
             className="flex items-center gap-2 sm:gap-2.5 group"
             aria-label="Go to homepage"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105" style={{ background: 'var(--color-accent)' }}>
-              <span className="text-white font-bold text-xs sm:text-sm">GP</span>
-            </div>
+            <img src="/logo.png" alt="Huey Logo" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-transform group-hover:scale-105 object-contain" />
             <span className="font-bold text-base sm:text-lg tracking-tight text-ink">
-              GhanaPaint<span className="text-accent">Pro</span>
+              Huey
             </span>
           </button>
           
@@ -290,7 +288,7 @@ const App: React.FC = () => {
       <footer className="bg-paper-warm border-t border-stone-100 py-8 sm:py-10 mt-auto">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
           <p className="text-ink-subtle text-xs sm:text-sm">
-            © {new Date().getFullYear()} GhanaPaint Pro
+            © {new Date().getFullYear()} Huey
           </p>
           <p className="text-ink-subtle text-xs sm:text-sm">
             Built with AI
@@ -302,3 +300,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
