@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { AppState, AnalysisResult, ShoppingList as ShoppingListType } from './types';
 import Hero from './components/Hero';
 import UploadSection from './components/UploadSection';
@@ -10,6 +10,7 @@ import { validateImage, ValidationResult } from './services/imageValidation';
 import ImageValidationModal from './components/ImageValidationModal';
 import ImageValidationBanner from './components/ImageValidationBanner';
 import { Loader2, Plus, ExternalLink } from 'lucide-react';
+import { debounce } from './lib/debounce';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
@@ -21,6 +22,7 @@ const App: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [base64Raw, setBase64Raw] = useState<string>('');
+  const [imageHash, setImageHash] = useState<string>('');
   const [visualizationCount, setVisualizationCount] = useState(0);
   const MAX_VISUALIZATIONS = 5; // Rate limit per session
   const currentRequestRef = useRef<string | null>(null);
@@ -38,7 +40,7 @@ const App: React.FC = () => {
     }
   };
 
-  const processImage = async (file: File) => {
+  const processImage = async (file: File, compressedBase64: string) => {
     setError(null);
     setAnalysisResult(null);
     setVisualizationCount(0);
@@ -58,23 +60,46 @@ const App: React.FC = () => {
     try {
       setLoading(true);
       
-      // Step 1: Compress image
-      setLoadingMessage('Optimizing image for analysis...');
-      const compressedBase64 = await compressImage(file, 1600, 1600, 0.80);
-      setBase64Raw(compressedBase64);
+      setLoadingMessage('Preparing image...');
+      const hash = await ImageCache.generateImageHash(compressedBase64);
+      setImageHash(hash);
 
-      // Step 2: Check cache
-      setLoadingMessage('Checking for previous analysis...');
-      const imageHash = ImageCache.generateImageHash(compressedBase64);
-      const cacheKey = `analysis_${imageHash}`;
+      // Use smaller image for analysis to reduce token costs
+      setLoadingMessage('Optimizing for analysis...');
+      const analysisImage = await compressImage(file, 1200, 1200, 0.75);
+
+      // Check cache
+      setLoadingMessage('Checking our memory...');
+      const cacheKey = `analysis_${hash}`;
       
-      // Step 3: Analyze (with cache check)
-      setLoadingMessage('Analyzing space architecture and lighting...');
+      setLoadingMessage('Analyzing surfaces...');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
-        setLoadingMessage('Identifying surfaces and materials...');
-        const result = await analyzeImageForPaint(compressedBase64);
-        setLoadingMessage('Generating color palette recommendations...');
-        return result;
+        // Rotating messages during analysis
+        const analysisMessages = [
+          'Detecting textures...',
+          'Checking edges...',
+          'Reading walls...',
+          'Evaluating surface...',
+          'Curating colors...'
+        ];
+        
+        let messageIndex = 0;
+        const messageInterval = setInterval(() => {
+          if (messageIndex < analysisMessages.length) {
+            setLoadingMessage(analysisMessages[messageIndex]);
+            messageIndex++;
+          }
+        }, 4000); // Change message every 4 seconds
+        
+        try {
+          const result = await analyzeImageForPaint(analysisImage, compressedBase64);
+          clearInterval(messageInterval);
+          setLoadingMessage('Finalizing...');
+          return result;
+        } catch (error) {
+          clearInterval(messageInterval);
+          throw error;
+        }
       });
       
       setAnalysisResult(analysis);
@@ -89,17 +114,23 @@ const App: React.FC = () => {
   };
 
   const handleImageSelected = async (file: File) => {
-    // Step 1: Validate image quality
-    setLoadingMessage('Checking photo quality...');
+    // Parallelize validation and compression
+    setLoadingMessage('Preparing image...');
     setLoading(true);
     
     try {
-      const validation = await validateImage(file);
+      // Run validation and compression in parallel for faster processing
+      const [validation, compressedBase64] = await Promise.all([
+        validateImage(file),
+        compressImage(file, 1600, 1600, 0.80)
+      ]);
+      
       setValidationResult(validation);
+      setBase64Raw(compressedBase64);
       setLoading(false);
       setLoadingMessage('');
 
-      // Step 2: Handle validation results
+      // Handle validation results
       if (!validation.isValid) {
         // Show error modal - blocking
         setPendingFile(file);
@@ -107,13 +138,13 @@ const App: React.FC = () => {
         return;
       }
 
-      // Step 3: If warnings, show banner but proceed
+      // If warnings, show banner but proceed
       if (validation.warnings.length > 0) {
         // Warnings are non-blocking, proceed with processing
-        await processImage(file);
+        await processImage(file, compressedBase64);
       } else {
         // No issues, proceed directly
-        await processImage(file);
+        await processImage(file, compressedBase64);
       }
     } catch (err: any) {
       console.error(err);
@@ -132,14 +163,20 @@ const App: React.FC = () => {
 
   const handleTryAnyway = async () => {
     setShowValidationModal(false);
-    if (pendingFile) {
-      await processImage(pendingFile);
+    if (pendingFile && base64Raw) {
+      // Use already compressed image from handleImageSelected
+      await processImage(pendingFile, base64Raw);
+      setPendingFile(null);
+    } else if (pendingFile) {
+      // Fallback: compress if not already done
+      const compressedBase64 = await compressImage(pendingFile, 1600, 1600, 0.80);
+      await processImage(pendingFile, compressedBase64);
       setPendingFile(null);
     }
   };
 
-  const handleVisualize = async (colorName: string, colorHex: string) => {
-    if (!base64Raw) {
+  const performVisualization = useCallback(async (colorName: string, colorHex: string) => {
+    if (!base64Raw || !imageHash) {
       return;
     }
     
@@ -154,13 +191,8 @@ const App: React.FC = () => {
     const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
     const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
     
-    // CRITICAL FIX: Include image hash in request ID to prevent collisions across different images
-    const imageHash = ImageCache.generateImageHash(base64Raw);
     const requestId = `${imageHash}_${normalizedHexWithHash}`;
     currentRequestRef.current = requestId;
-    
-    // INSTANT UI UPDATE: Clear previous visualization immediately
-    setVisualizedImage(null);
     
     try {
       setLoading(true);
@@ -172,24 +204,61 @@ const App: React.FC = () => {
       // Using normalized hex ensures consistent cache keys regardless of input format
       const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
       
-      // Check cache first
+      // Check cache first - Progressive humorous messages that rotate every 2-3 seconds
       const cached = await ImageCache.getOrSet(cacheKey, async () => {
         // Verify this is still the current request
         if (currentRequestRef.current !== requestId) {
           throw new Error('Request cancelled');
         }
         
-        setLoadingMessage('Applying paint color to walls...');
-        // Pass normalized hex to ensure consistency
-        const result = await visualizeColor(base64Raw, colorName, normalizedHexWithHash);
+        // Message rotation during API call (2-6 seconds) - keeps users engaged
+        const visualizationMessages = [
+          'Preparing paint...',
+          'Finding walls...',
+          'Painting walls...',
+          'Rendering look...',
+          'AI brushing...',
+          'Adding shadows...'
+        ];
         
-        // Verify again before returning
-        if (currentRequestRef.current !== requestId) {
-          throw new Error('Request cancelled');
+        let messageIndex = 0;
+        const messageInterval = setInterval(() => {
+          if (currentRequestRef.current !== requestId) {
+            clearInterval(messageInterval);
+            return;
+          }
+          if (messageIndex < visualizationMessages.length) {
+            setLoadingMessage(visualizationMessages[messageIndex]);
+            messageIndex++;
+          } else {
+            // Loop back to keep messages rotating
+            messageIndex = 0;
+            setLoadingMessage(visualizationMessages[messageIndex]);
+            messageIndex++;
+          }
+        }, 5500); // Change message every 5.5 seconds (paint application takes longer)
+        
+        try {
+          const result = await visualizeColor(
+            base64Raw, 
+            colorName, 
+            normalizedHexWithHash,
+            analysisResult // Pass analysis data to reuse surface analysis
+          );
+          
+          // Verify again before returning
+          if (currentRequestRef.current !== requestId) {
+            clearInterval(messageInterval);
+            throw new Error('Request cancelled');
+          }
+          
+          clearInterval(messageInterval);
+          setLoadingMessage('Finalizing...');
+          return result;
+        } catch (error) {
+          clearInterval(messageInterval);
+          throw error;
         }
-        
-        setLoadingMessage('Rendering realistic lighting and shadows...');
-        return result;
       });
       
       // CRITICAL FIX: Validate request ID before using cached result
@@ -227,7 +296,36 @@ const App: React.FC = () => {
         setLoading(false);
       }
     }
-  };
+  }, [base64Raw, imageHash, visualizationCount, analysisResult]);
+
+  // Create debounced version of visualization function
+  const debouncedVisualize = useMemo(
+    () => debounce(performVisualization, 300),
+    [performVisualization]
+  );
+
+  const handleVisualize = useCallback((colorName: string, colorHex: string) => {
+    // INSTANT UI UPDATE: Clear previous visualization immediately
+    setVisualizedImage(null);
+    
+    // Debounced API call (prevents rapid-fire requests)
+    debouncedVisualize(colorName, colorHex);
+  }, [debouncedVisualize]);
+
+  const handlePrefetchVisualization = useCallback((colorName: string, colorHex: string) => {
+    if (!base64Raw || !imageHash || !analysisResult) return;
+    
+    const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
+    const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
+    const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
+    
+    // Check if already cached, if not, prefetch in background
+    ImageCache.getOrSet(cacheKey, async () => {
+      return await visualizeColor(base64Raw, colorName, normalizedHexWithHash, analysisResult);
+    }).catch(() => {
+      // Silent fail for prefetch
+    });
+  }, [base64Raw, imageHash, analysisResult]);
 
   const handleGenerateList = async (colorName: string, area: number) => {
     if (!analysisResult) return;
@@ -236,13 +334,20 @@ const App: React.FC = () => {
       setError(null);
       setLoadingMessage('Calculating material quantities...');
       
-      // No longer need image - we have analysis results
-      const list = await generateShoppingList(
-        analysisResult.surfaceType,
-        analysisResult.condition,
-        colorName,
-        area
-      );
+      // Cache shopping lists by surface type, condition, color, and rounded area
+      const roundedArea = Math.round(area);
+      const cacheKey = `shopping_${analysisResult.surfaceType}_${analysisResult.condition}_${colorName}_${roundedArea}`;
+      
+      const list = await ImageCache.getOrSet(cacheKey, async () => {
+        // No longer need image - we have analysis results
+        return await generateShoppingList(
+          analysisResult!.surfaceType,
+          analysisResult!.condition,
+          colorName,
+          area
+        );
+      });
+      
       setShoppingList(list);
       setAppState(AppState.SHOPPING);
       setLoadingMessage('');
@@ -270,6 +375,7 @@ const App: React.FC = () => {
     }
   }, [appState]);
 
+
   const handleReset = () => {
     setAppState(AppState.IDLE);
     setOriginalImage(null);
@@ -278,6 +384,8 @@ const App: React.FC = () => {
     setShoppingList(null);
     setError(null);
     setLoadingMessage('');
+    setBase64Raw('');
+    setImageHash('');
     setVisualizationCount(0);
     setValidationResult(null);
     setShowValidationModal(false);
@@ -389,6 +497,9 @@ const App: React.FC = () => {
                 onScrollToVisualizer={() => {
                   visualizerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
+                base64Raw={base64Raw}
+                imageHash={imageHash}
+                onPrefetchVisualization={handlePrefetchVisualization}
               />
             </div>
           </>

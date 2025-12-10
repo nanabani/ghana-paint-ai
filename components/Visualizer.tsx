@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnalysisResult } from '../types';
 import { Paintbrush, Check, Loader2, Maximize2, X, Sparkles, Building2, Info, ChevronDown, Palette, Plus } from 'lucide-react';
 import ColorModal from './ColorModal';
+import AnimatedLoadingMessages from './AnimatedLoadingMessages';
 
 interface VisualizerProps {
   originalImage: string;
@@ -22,7 +23,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
   loadingMessage,
   onVisualize,
   onGenerateList,
-  onScrollToVisualizer
+  onScrollToVisualizer,
+  onPrefetchVisualization
 }) => {
   const [selectedColor, setSelectedColor] = useState<{name: string, hex: string} | null>(null);
   const [area, setArea] = useState<number>(0);
@@ -47,7 +49,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
     }
   }, [visualizedImage, selectedColor, isVisualizing]);
 
-  const handleColorSelect = (color: {name: string, hex: string}) => {
+  // OPTIMIZATION Step 2.4: Memoize color selection handler
+  const handleColorSelect = useCallback((color: {name: string, hex: string}) => {
     setSelectedColor(color);
     // Clear visualized image immediately for instant feedback
     setActiveTab('original');
@@ -59,18 +62,23 @@ const Visualizer: React.FC<VisualizerProps> = ({
         onScrollToVisualizer();
       }, 50);
     }
-  };
+  }, [onVisualize, onScrollToVisualizer]);
 
-  const handleGenerateClick = () => {
+  // OPTIMIZATION Step 2.4: Memoize generate handler
+  const handleGenerateClick = useCallback(() => {
     if (selectedColor && area > 0) {
       onGenerateList(selectedColor.name, area);
     }
-  };
+  }, [selectedColor, area, onGenerateList]);
 
-  const currentImage = activeTab === 'visualized' && visualizedImage ? visualizedImage : originalImage;
+  // OPTIMIZATION Step 2.4: Memoize current image computation
+  const currentImage = useMemo(() => {
+    return activeTab === 'visualized' && visualizedImage ? visualizedImage : originalImage;
+  }, [activeTab, visualizedImage, originalImage]);
 
   // Normalize hex color to ensure it has # prefix and is valid
-  const normalizeHex = (hex: string | undefined | null): string => {
+  // OPTIMIZATION: Memoized to avoid recreating on every render
+  const normalizeHex = useCallback((hex: string | undefined | null): string => {
     if (!hex || typeof hex !== 'string') return '#CCCCCC'; // Fallback to light gray if invalid
     
     // Remove any whitespace and convert to uppercase
@@ -98,9 +106,10 @@ const Visualizer: React.FC<VisualizerProps> = ({
     }
     
     return '#' + normalized;
-  };
+  }, []);
 
-  const isLightColor = (hex: string) => {
+  // OPTIMIZATION: Memoized color lightness check
+  const isLightColor = useCallback((hex: string) => {
     const normalized = normalizeHex(hex);
     const h = normalized.replace('#', '');
     if (h.length !== 6) return false;
@@ -109,7 +118,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
     const b = parseInt(h.substring(4, 6), 16);
     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
     return yiq >= 180;
-  };
+  }, [normalizeHex]);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-4 sm:py-8 md:px-8">
@@ -224,21 +233,16 @@ const Visualizer: React.FC<VisualizerProps> = ({
               ))}
             </div>
 
-            {/* Loading overlay */}
+            {/* Loading overlay with animated messages */}
             {isVisualizing && (
-              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                <div className="bg-paper-elevated px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-3 shadow-2xl border border-stone-100">
-                  <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-accent animate-spin flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-ink text-sm sm:text-base">
-                      {loadingMessage || 'Painting walls...'}
-                    </p>
-                    {selectedColor && (
-                      <p className="text-xs sm:text-sm text-ink-subtle mt-0.5">
-                        Applying {selectedColor.name}
-                      </p>
-                    )}
-                  </div>
+              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none bg-paper/40 backdrop-blur-[2px]">
+                <div className="bg-paper-elevated/95 backdrop-blur-md rounded-lg sm:rounded-xl shadow-xl border border-stone-200/50 overflow-hidden">
+                  <AnimatedLoadingMessages
+                    messages={loadingMessage ? [loadingMessage] : ['Painting walls...', 'Applying color...', 'Almost there...']}
+                    interval={4000}
+                    className="min-w-[200px] sm:min-w-[240px]"
+                    showDots={!loadingMessage}
+                  />
                 </div>
               </div>
             )}
@@ -360,6 +364,12 @@ const Visualizer: React.FC<VisualizerProps> = ({
                               <button
                                 key={cIdx}
                                 onClick={() => handleColorSelect({ name: color.name, hex: normalizedHex })}
+                                onMouseEnter={() => {
+                                  // PHASE 3: Smart cache warming - Prefetch on hover (lazy loading)
+                                  if (onPrefetchVisualization) {
+                                    onPrefetchVisualization(color.name, normalizedHex);
+                                  }
+                                }}
                                 className="flex flex-col items-center group/item cursor-pointer w-12 sm:w-14 touch-manipulation"
                                 aria-label={`Select color ${color.name}`}
                               >
