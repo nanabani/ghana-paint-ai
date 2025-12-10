@@ -239,7 +239,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 <div className="bg-paper-elevated/95 backdrop-blur-md rounded-lg sm:rounded-xl shadow-xl border border-stone-200/50 overflow-hidden">
                   <AnimatedLoadingMessages
                     messages={loadingMessage ? [loadingMessage] : ['Painting walls...', 'Applying color...', 'Almost there...']}
-                    interval={3000}
+                    interval={4000}
                     className="min-w-[200px] sm:min-w-[240px]"
                     showDots={!loadingMessage}
                   />

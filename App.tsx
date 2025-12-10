@@ -92,7 +92,7 @@ const App: React.FC = () => {
             setLoadingMessage(analysisMessages[messageIndex]);
             messageIndex++;
           }
-        }, 2500); // Change message every 2.5 seconds
+        }, 4000); // Change message every 4 seconds
         
         try {
           const result = await analyzeImageForPaint(analysisImage, compressedBase64);
@@ -241,7 +241,7 @@ const App: React.FC = () => {
             setLoadingMessage(visualizationMessages[messageIndex]);
             messageIndex++;
           }
-        }, 2500); // Change message every 2.5 seconds
+        }, 4000); // Change message every 4 seconds
         
         try {
           // OPTIMIZATION: Pass analysis context to speed up visualization (20-40% faster)
