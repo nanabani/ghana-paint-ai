@@ -265,13 +265,20 @@ const App: React.FC = () => {
       setError(null);
       setLoadingMessage('Calculating material quantities...');
       
-      // No longer need image - we have analysis results
-      const list = await generateShoppingList(
-        analysisResult.surfaceType,
-        analysisResult.condition,
-        colorName,
-        area
-      );
+      // COST OPTIMIZATION Step 1: Cache shopping lists by surface type, condition, color, and rounded area
+      const roundedArea = Math.round(area);
+      const cacheKey = `shopping_${analysisResult.surfaceType}_${analysisResult.condition}_${colorName}_${roundedArea}`;
+      
+      const list = await ImageCache.getOrSet(cacheKey, async () => {
+        // No longer need image - we have analysis results
+        return await generateShoppingList(
+          analysisResult!.surfaceType,
+          analysisResult!.condition,
+          colorName,
+          area
+        );
+      });
+      
       setShoppingList(list);
       setAppState(AppState.SHOPPING);
       setLoadingMessage('');
@@ -300,12 +307,14 @@ const App: React.FC = () => {
   }, [appState]);
 
   // OPTIMIZATION Step 2.2: Cache warming - Prefetch visualizations for top recommended colors
+  // COST OPTIMIZATION Step 3: Reduced to top 2 colors from AI-CURATED palette only (60% cost reduction)
   useEffect(() => {
     if (analysisResult && base64Raw && imageHash) {
-      // Get top colors from each palette (first 2 from each, max 5 total)
-      const topColors = analysisResult.palettes
-        .flatMap(palette => palette.colors.slice(0, 2))
-        .slice(0, 5);
+      // Get top 2 colors from AI-CURATED palette only (most likely to be selected)
+      const aiPalette = analysisResult.palettes.find(p => 
+        p.name.toUpperCase().includes("AI-CURATED")
+      );
+      const topColors = aiPalette ? aiPalette.colors.slice(0, 2) : [];
 
       // Prefetch visualizations in background (non-blocking)
       topColors.forEach(color => {
