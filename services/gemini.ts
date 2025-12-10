@@ -160,7 +160,10 @@ export const analyzeImageForPaint = async (
     properties: {
       surfaceType: { type: Type.STRING, description: "Wall material: Concrete/Plaster/Wood" },
       condition: { type: Type.STRING, description: "Surface condition: New/Good/Peeling/Moldy" },
-      description: { type: Type.STRING, description: "Brief description of the current wall appearance and features" },
+      description: { 
+        type: Type.STRING, 
+        description: "Simple, informative description: Key structural features (wall locations, columns, recesses) and treatment needs if any. Keep concise (1-2 sentences). Tone: clear and helpful. Example: 'Front and side walls visible with two columns. Requires primer for peeling areas.'" 
+      },
       estimatedAreaWarning: { type: Type.STRING, description: "Note about measurements needed" },
       palettes: {
         type: Type.ARRAY,
@@ -199,7 +202,12 @@ export const analyzeImageForPaint = async (
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-        { text: `Identify surface material, condition, and very briefly describe wall appearance. Indicate if treatments are needed. Determine if interior or exterior space.
+        { text: `Identify surface material, condition, and space type (interior/exterior).
+
+For description: Write a simple, informative 1-2 sentence description covering:
+- Key structural features (wall locations, columns, recesses, trim)
+- Treatment needs if any (e.g., 'Requires primer for peeling areas' or 'No treatment needed')
+Use clear, helpful language. Skip aesthetic details.
 
 Generate 3 palettes:
 1. "AI-CURATED SUGGESTION" - 3-4 colors from available Neuce and Azar collections
@@ -213,7 +221,8 @@ Order colors by relevance. Most recommended first. Use exact color names and hex
     config: {
       responseMimeType: 'application/json',
       responseSchema: analysisSchema,
-      systemInstruction: `Architectural consultant in Ghana. Available paint colors:
+      systemInstruction: `Architectural consultant in Ghana. Write descriptions in simple, clear, helpful language. 
+Available paint colors:
 - Neuce collection (10 colors): ${formatColorsForPrompt(neuceColors)}
 - Azar collection (10 colors): ${formatColorsForPrompt(azarColors)}
 
