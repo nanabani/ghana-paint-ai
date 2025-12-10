@@ -10,13 +10,7 @@ interface AnimatedLoadingMessagesProps {
 }
 
 const AnimatedLoadingMessages: React.FC<AnimatedLoadingMessagesProps> = ({
-  messages = [
-    "Loading your content...",
-    "Almost there...",
-    "Preparing everything...",
-    "Just a moment...",
-    "Getting things ready..."
-  ],
+  messages = [],
   interval = 3000,
   className = "",
   showDots = true

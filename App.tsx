@@ -22,7 +22,7 @@ const App: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [base64Raw, setBase64Raw] = useState<string>('');
-  const [imageHash, setImageHash] = useState<string>(''); // OPTIMIZATION: Precomputed hash
+  const [imageHash, setImageHash] = useState<string>('');
   const [visualizationCount, setVisualizationCount] = useState(0);
   const MAX_VISUALIZATIONS = 5; // Rate limit per session
   const currentRequestRef = useRef<string | null>(null);
@@ -60,13 +60,11 @@ const App: React.FC = () => {
     try {
       setLoading(true);
       
-      // OPTIMIZATION Step 1.3: Precompute hash during compression
       setLoadingMessage('Preparing image...');
       const hash = await ImageCache.generateImageHash(compressedBase64);
-      setImageHash(hash); // Store precomputed hash in state
+      setImageHash(hash);
 
-      // PHASE 2.2: Use smaller image for analysis (1200x1200) to reduce token costs
-      // Keep full size for visualization which needs detail
+      // Use smaller image for analysis to reduce token costs
       setLoadingMessage('Optimizing for analysis...');
       const analysisImage = await compressImage(file, 1200, 1200, 0.75);
 
@@ -74,10 +72,9 @@ const App: React.FC = () => {
       setLoadingMessage('Checking our memory...');
       const cacheKey = `analysis_${hash}`;
       
-      // Analyze (with cache check) - Progressive humorous messages that rotate every 2-3 seconds
       setLoadingMessage('Analyzing surfaces... judging lighting quietly.');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
-        // Message rotation during API call (3-8 seconds) - keeps users engaged
+        // Rotating messages during analysis
         const analysisMessages = [
           'Detecting textures...',
           'Checking edges...',
@@ -117,7 +114,7 @@ const App: React.FC = () => {
   };
 
   const handleImageSelected = async (file: File) => {
-    // OPTIMIZATION Step 1.1: Parallelize validation and compression
+    // Parallelize validation and compression
     setLoadingMessage('Preparing image...');
     setLoading(true);
     
@@ -178,7 +175,6 @@ const App: React.FC = () => {
     }
   };
 
-  // OPTIMIZATION Step 1.4: Debounced visualization function
   const performVisualization = useCallback(async (colorName: string, colorHex: string) => {
     if (!base64Raw || !imageHash) {
       return;
@@ -195,7 +191,6 @@ const App: React.FC = () => {
     const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
     const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
     
-    // OPTIMIZATION Step 1.3: Use precomputed hash instead of generating on-demand
     const requestId = `${imageHash}_${normalizedHexWithHash}`;
     currentRequestRef.current = requestId;
     
@@ -244,7 +239,6 @@ const App: React.FC = () => {
         }, 5500); // Change message every 5.5 seconds (paint application takes longer)
         
         try {
-          // OPTIMIZATION: Pass analysis context to speed up visualization (20-40% faster)
           const result = await visualizeColor(
             base64Raw, 
             colorName, 
@@ -318,7 +312,6 @@ const App: React.FC = () => {
     debouncedVisualize(colorName, colorHex);
   }, [debouncedVisualize]);
 
-  // PHASE 3: Smart cache warming - Prefetch on hover (lazy loading)
   const handlePrefetchVisualization = useCallback((colorName: string, colorHex: string) => {
     if (!base64Raw || !imageHash || !analysisResult) return;
     
@@ -341,7 +334,7 @@ const App: React.FC = () => {
       setError(null);
       setLoadingMessage('Calculating material quantities...');
       
-      // COST OPTIMIZATION Step 1: Cache shopping lists by surface type, condition, color, and rounded area
+      // Cache shopping lists by surface type, condition, color, and rounded area
       const roundedArea = Math.round(area);
       const cacheKey = `shopping_${analysisResult.surfaceType}_${analysisResult.condition}_${colorName}_${roundedArea}`;
       
@@ -382,9 +375,6 @@ const App: React.FC = () => {
     }
   }, [appState]);
 
-  // PHASE 3: Smart cache warming - Removed automatic prefetching
-  // Now uses hover-based prefetching in Visualizer component (60-80% cost reduction)
-  // This only prefetches when user shows interest (hovers over color)
 
   const handleReset = () => {
     setAppState(AppState.IDLE);
@@ -395,7 +385,7 @@ const App: React.FC = () => {
     setError(null);
     setLoadingMessage('');
     setBase64Raw('');
-    setImageHash(''); // OPTIMIZATION: Clear precomputed hash
+    setImageHash('');
     setVisualizationCount(0);
     setValidationResult(null);
     setShowValidationModal(false);
