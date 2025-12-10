@@ -3,7 +3,6 @@ import { AppState, AnalysisResult, ShoppingList as ShoppingListType } from './ty
 import Hero from './components/Hero';
 import UploadSection from './components/UploadSection';
 import Visualizer from './components/Visualizer';
-import { ShimmeringText } from './components/ui/shimmering-text';
 import ShoppingList from './components/ShoppingList';
 import { analyzeImageForPaint, visualizeColor, generateShoppingList, compressImage } from './services/gemini';
 import { ImageCache } from './services/cache';
@@ -476,15 +475,9 @@ const App: React.FC = () => {
                 <Loader2 className="w-10 h-10 text-accent animate-spin" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold mb-3">
-              <ShimmeringText 
-                text={loadingMessage || 'Analyzing Your Space'}
-                color="text-ink"
-                shimmerColor="rgba(194, 65, 12, 0.6)"
-              />
-            </h2>
+            <h2 className="text-2xl font-bold text-ink mb-3">Analyzing Your Space</h2>
             <p className="text-ink-subtle max-w-sm">
-              {loadingMessage || 'Identifying surfaces, lighting conditions, and generating personalized color recommendations.'}
+              Identifying surfaces, lighting conditions, and generating personalized color recommendations.
             </p>
           </div>
         )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnalysisResult } from '../types';
 import { Paintbrush, Check, Loader2, Maximize2, X, Sparkles, Building2, Info, ChevronDown, Palette, Plus } from 'lucide-react';
 import ColorModal from './ColorModal';
-import { ShimmeringText } from './ui/shimmering-text';
+import AnimatedLoadingMessages from './AnimatedLoadingMessages';
 
 interface VisualizerProps {
   originalImage: string;
@@ -233,26 +233,16 @@ const Visualizer: React.FC<VisualizerProps> = ({
               ))}
             </div>
 
-            {/* Loading overlay */}
+            {/* Loading overlay with animated messages */}
             {isVisualizing && (
-              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                <div className="bg-paper-elevated px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-3 shadow-2xl border border-stone-100">
-                  <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-accent animate-spin flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-sm sm:text-base">
-                      <ShimmeringText 
-                        text={loadingMessage || 'Painting walls...'}
-                        color="text-ink"
-                        shimmerColor="rgba(194, 65, 12, 0.6)"
-                        className="block"
-                      />
-                    </p>
-                    {selectedColor && (
-                      <p className="text-xs sm:text-sm text-ink-subtle mt-0.5">
-                        Applying {selectedColor.name}
-                      </p>
-                    )}
-                  </div>
+              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none bg-paper/80 backdrop-blur-sm">
+                <div className="bg-paper-elevated rounded-xl sm:rounded-2xl shadow-2xl border border-stone-100 overflow-hidden">
+                  <AnimatedLoadingMessages
+                    messages={loadingMessage ? [loadingMessage] : ['Painting walls...', 'Applying color...', 'Almost there...']}
+                    interval={3000}
+                    className="min-w-[280px] sm:min-w-[320px]"
+                    showDots={!loadingMessage}
+                  />
                 </div>
               </div>
             )}

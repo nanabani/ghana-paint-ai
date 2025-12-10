@@ -42,7 +42,6 @@ export default {
         'reveal': 'reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
         'reveal-scale': 'reveal-scale 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
         'shimmer': 'shimmer 1.5s infinite',
-        'shimmer-text': 'shimmer-text 2s ease-in-out infinite',
         'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
         'rainbow': 'rainbow 2s infinite linear',
       },
@@ -62,10 +61,6 @@ export default {
         'shimmer': {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
-        },
-        'shimmer-text': {
-          '0%': { backgroundPosition: '200% 0' },
-          '100%': { backgroundPosition: '-200% 0' },
         },
         'pulse-subtle': {
           '0%, 100%': { opacity: '0.5' },
