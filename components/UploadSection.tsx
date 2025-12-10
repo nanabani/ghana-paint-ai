@@ -152,7 +152,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, isAnalyz
                 <button
                   type="button"
                   onClick={handleTakePhotoClick}
-                  className="group flex items-center justify-center w-full px-6 py-4 bg-ink text-white font-semibold rounded-2xl hover:bg-ink/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                  className="group flex items-center justify-center w-full px-6 py-4 bg-ink text-white font-semibold rounded-2xl hover:bg-ink/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 touch-manipulation"
                   aria-label="Take a photo with your camera"
                 >
                   <Camera className="w-5 h-5 mr-3" />
@@ -162,7 +162,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, isAnalyz
                 <button
                   type="button"
                   onClick={handleUploadClick}
-                  className="flex items-center justify-center w-full px-6 py-4 bg-paper-warm border border-stone-200 text-ink font-semibold rounded-2xl hover:bg-stone-100 hover:border-stone-300 transition-all"
+                  className="flex items-center justify-center w-full px-6 py-4 bg-paper-warm border border-stone-200 text-ink font-semibold rounded-2xl hover:bg-stone-100 hover:border-stone-300 transition-all touch-manipulation"
                   aria-label="Select an image from your gallery"
                 >
                   <ImageIcon className="w-5 h-5 mr-3 text-ink-subtle" />

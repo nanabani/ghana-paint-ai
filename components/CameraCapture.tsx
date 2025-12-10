@@ -138,12 +138,12 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ isOpen, onClose, onCaptur
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/95 flex flex-col animate-reveal">
+    <div className="fixed inset-0 z-50 bg-ink/95 flex flex-col animate-reveal safe-insets">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 text-white">
+      <div className="flex items-center justify-between p-4 text-white safe-top">
         <button
           onClick={handleClose}
-          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors touch-manipulation"
           aria-label="Close camera"
         >
           <X className="w-5 h-5" />
@@ -154,7 +154,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ isOpen, onClose, onCaptur
         {hasMultipleCameras && !isLoading && !error ? (
           <button
             onClick={handleSwitchCamera}
-            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors touch-manipulation"
             aria-label="Switch camera"
           >
             <SwitchCamera className="w-5 h-5" />
@@ -182,7 +182,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ isOpen, onClose, onCaptur
             <p className="text-sm text-white/60 max-w-sm">{error}</p>
             <button
               onClick={handleClose}
-              className="mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors"
+              className="mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors touch-manipulation"
             >
               Go Back
             </button>
@@ -208,7 +208,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ isOpen, onClose, onCaptur
 
       {/* Capture Button */}
       {!error && (
-        <div className="p-8 flex items-center justify-center">
+        <div className="p-8 flex items-center justify-center safe-bottom">
           <button
             onClick={handleCapture}
             disabled={isLoading}
@@ -219,7 +219,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ isOpen, onClose, onCaptur
               hover:scale-105 active:scale-95
               transition-transform
               disabled:opacity-50 disabled:cursor-not-allowed
-              ring-4 ring-white/30
+              ring-4 ring-white/30 touch-manipulation
             "
             aria-label="Capture photo"
           >

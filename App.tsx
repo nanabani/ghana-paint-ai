@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AppState, AnalysisResult, ShoppingList as ShoppingListType } from './types';
 import Hero from './components/Hero';
 import UploadSection from './components/UploadSection';
@@ -25,9 +25,11 @@ const App: React.FC = () => {
   const MAX_VISUALIZATIONS = 5; // Rate limit per session
   const currentRequestRef = useRef<string | null>(null);
   const loadingRequestRef = useRef<string | null>(null);
+  const visualizerRef = useRef<HTMLDivElement | null>(null);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const hasScrolledToVisualizer = useRef(false);
 
   const handleStart = () => {
     const uploadElement = document.getElementById('upload-area');
@@ -137,7 +139,9 @@ const App: React.FC = () => {
   };
 
   const handleVisualize = async (colorName: string, colorHex: string) => {
-    if (!base64Raw) return;
+    if (!base64Raw) {
+      return;
+    }
     
     // Rate limiting
     if (visualizationCount >= MAX_VISUALIZATIONS) {
@@ -145,9 +149,14 @@ const App: React.FC = () => {
       return;
     }
     
+    // Normalize hex value to ensure consistent cache keys
+    // This prevents cache misses due to hex format differences (e.g., #FF6B35 vs ff6b35 vs FF6B35)
+    const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
+    const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
+    
     // CRITICAL FIX: Include image hash in request ID to prevent collisions across different images
     const imageHash = ImageCache.generateImageHash(base64Raw);
-    const requestId = `${imageHash}_${colorHex}`;
+    const requestId = `${imageHash}_${normalizedHexWithHash}`;
     currentRequestRef.current = requestId;
     
     // INSTANT UI UPDATE: Clear previous visualization immediately
@@ -159,8 +168,9 @@ const App: React.FC = () => {
       setLoadingMessage('Checking cache...');
       setVisualizationCount(prev => prev + 1);
       
-      // Create cache key: image hash + color
-      const cacheKey = `visualization_${imageHash}_${colorHex}`;
+      // Create cache key: image hash + normalized color hex
+      // Using normalized hex ensures consistent cache keys regardless of input format
+      const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
       
       // Check cache first
       const cached = await ImageCache.getOrSet(cacheKey, async () => {
@@ -170,7 +180,8 @@ const App: React.FC = () => {
         }
         
         setLoadingMessage('Applying paint color to walls...');
-        const result = await visualizeColor(base64Raw, colorName, colorHex);
+        // Pass normalized hex to ensure consistency
+        const result = await visualizeColor(base64Raw, colorName, normalizedHexWithHash);
         
         // Verify again before returning
         if (currentRequestRef.current !== requestId) {
@@ -185,6 +196,13 @@ const App: React.FC = () => {
       // This prevents stale cached results from previous images
       if (currentRequestRef.current !== requestId) {
         // Request was cancelled, ignore result
+        return;
+      }
+      
+      // Basic check: ensure we have a valid result
+      if (!cached || typeof cached !== 'string' || cached.length < 100) {
+        setError('Invalid visualization result. Please try again.');
+        setLoadingMessage('');
         return;
       }
       
@@ -237,6 +255,21 @@ const App: React.FC = () => {
     }
   };
 
+  // Scroll to top when transitioning to visualizer (no animation on initial load)
+  useEffect(() => {
+    if (appState === AppState.VISUALIZING && !hasScrolledToVisualizer.current) {
+      // Scroll to top immediately without animation
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        hasScrolledToVisualizer.current = true;
+      });
+    } else if (appState === AppState.IDLE) {
+      // Reset flag when going back to idle
+      hasScrolledToVisualizer.current = false;
+    }
+  }, [appState]);
+
   const handleReset = () => {
     setAppState(AppState.IDLE);
     setOriginalImage(null);
@@ -251,10 +284,11 @@ const App: React.FC = () => {
     setPendingFile(null);
     currentRequestRef.current = null; // Cancel any pending requests
     loadingRequestRef.current = null;
+    hasScrolledToVisualizer.current = false;
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-paper font-sans">
+    <div className="min-h-[100dvh] flex flex-col bg-paper font-sans">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-paper/80 backdrop-blur-xl border-b border-stone-100 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
@@ -267,6 +301,8 @@ const App: React.FC = () => {
             <img 
               src="/logo.png" 
               alt="Huey Logo" 
+              loading="lazy"
+              decoding="async"
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-transform group-hover:scale-105 object-contain"
             />
             <span className="font-bold text-base sm:text-lg tracking-tight text-ink">
@@ -278,7 +314,7 @@ const App: React.FC = () => {
           {appState !== AppState.IDLE && (
             <button 
               onClick={handleReset}
-              className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 text-sm font-semibold bg-ink text-white rounded-xl hover:bg-ink/90 transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 text-sm font-semibold bg-ink text-white rounded-xl hover:bg-ink/90 transition-all shadow-sm active:scale-95 touch-manipulation"
               aria-label="Start a new project"
             >
               <Plus className="w-4 h-4" />
@@ -341,15 +377,20 @@ const App: React.FC = () => {
                 />
               </div>
             )}
-            <Visualizer 
-              originalImage={originalImage}
-              visualizedImage={visualizedImage}
-              analysis={analysisResult}
-              isVisualizing={loading}
-              loadingMessage={loadingMessage}
-              onVisualize={handleVisualize}
-              onGenerateList={handleGenerateList}
-            />
+            <div ref={visualizerRef}>
+              <Visualizer 
+                originalImage={originalImage}
+                visualizedImage={visualizedImage}
+                analysis={analysisResult}
+                isVisualizing={loading}
+                loadingMessage={loadingMessage}
+                onVisualize={handleVisualize}
+                onGenerateList={handleGenerateList}
+                onScrollToVisualizer={() => {
+                  visualizerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              />
+            </div>
           </>
         )}
 

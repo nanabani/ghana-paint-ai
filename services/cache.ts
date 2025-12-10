@@ -46,7 +46,6 @@ export class ImageCache {
         request.onsuccess = () => {
           const data = request.result;
           if (data && Date.now() - data.timestamp < this.TTL) {
-            console.log('✅ Cache hit:', key);
             resolve(data);
           } else {
             if (data) {
@@ -64,7 +63,6 @@ export class ImageCache {
       }
 
       // Cache miss - fetch and store
-      console.log('❌ Cache miss:', key);
       const result = await fetcher();
       
       await new Promise<void>((resolve, reject) => {
@@ -95,11 +93,9 @@ export class ImageCache {
   ): Promise<T> {
     const cached = this.memoryCache.get(key);
     if (cached && Date.now() - cached.timestamp < this.TTL) {
-      console.log('✅ Memory cache hit:', key);
       return cached.value;
     }
 
-    console.log('❌ Memory cache miss:', key);
     const result = await fetcher();
     this.memoryCache.set(key, { value: result, timestamp: Date.now() });
     return result;
@@ -140,7 +136,6 @@ export class ImageCache {
         request.onerror = () => reject(request.error);
       });
       this.memoryCache.clear();
-      console.log('Cache cleared');
     } catch (error) {
       console.warn('Failed to clear cache:', error);
     }

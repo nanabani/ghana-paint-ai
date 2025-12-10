@@ -102,12 +102,12 @@ const ColorModal: React.FC<ColorModalProps> = ({
 
       {/* Modal */}
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 safe-insets"
         onKeyDown={handleKeyDown}
         tabIndex={-1}
       >
         <div
-          className="bg-paper rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-reveal-up"
+          className="bg-paper rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] flex flex-col animate-reveal-up"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -117,7 +117,7 @@ const ColorModal: React.FC<ColorModalProps> = ({
             </h2>
             <button
               onClick={onClose}
-              className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center transition-colors"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center transition-colors touch-manipulation"
               aria-label="Close color catalog"
             >
               <X className="w-5 h-5 text-ink" />
@@ -157,7 +157,7 @@ const ColorModal: React.FC<ColorModalProps> = ({
                     <button
                       key={idx}
                       onClick={() => handleSelect(color)}
-                      className="flex flex-col items-center group cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-lg p-2 transition-all"
+                      className="flex flex-col items-center group cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-lg p-2 transition-all touch-manipulation"
                       aria-label={`Select color ${color.name}, hex ${normalizedHex}`}
                       tabIndex={0}
                     >

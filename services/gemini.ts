@@ -160,31 +160,90 @@ IMPORTANT: Order colors by relevance within each palette. For the first 8 colors
  */
 export const visualizeColor = async (base64Image: string, colorName: string, colorHex: string): Promise<string> => {
   try {
+    // Normalize hex value for consistent processing
+    const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
+    const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
+    
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: `Apply ${colorName} (${colorHex}) to walls. If walls have multiple colors, apply uniformly to all wall surfaces unless there are clear accent sections (preserve accents if they complement the new color). If interior: preserve ceiling, floor, fixtures. If exterior: preserve sky, ground, windows, doors. Maintain realistic lighting.` }
+          { text: `Paint ALL wall surfaces in this image with the color ${colorName} (${normalizedHexWithHash}).
+
+CRITICAL: Paint EVERY wall surface, regardless of its current color or whether it appears to be an accent.
+
+WALLS TO PAINT (include ALL of these):
+1. Main walls (front, back, side walls)
+2. Accent walls or colored sections (even if currently a different color like orange, red, etc.)
+3. Structural columns or pillars that are painted (not stone/brick)
+4. Recessed wall areas (like balcony interiors, alcoves, niches)
+5. Wall trim or painted roofline sections
+6. Partial walls visible in the frame
+7. Walls at different angles or depths
+8. Walls behind or beside objects
+9. Background building walls (if visible)
+10. ANY vertical painted surface - if it's painted, it's a wall
+
+PAINTING RULES:
+- Apply ${normalizedHexWithHash} to EVERY wall surface listed above
+- Do NOT preserve any walls in their original color (even accent colors)
+- Do NOT skip walls because they're currently a different color
+- Paint uniformly - all walls must show ${normalizedHexWithHash}
+- If a section is painted (not stone/brick/wood), it's a wall - paint it
+
+PRESERVE (do NOT paint):
+- Windows and window frames
+- Doors and door frames
+- Ceiling, floor, ground
+- Sky, vegetation, trees
+- Furniture, fixtures, railings
+- Stone, brick, or wood cladding (only painted surfaces are walls)
+- Metal elements (unless they're painted walls)
+
+The output must show ALL painted wall surfaces uniformly painted ${normalizedHexWithHash}.` }
         ]
+      },
+      config: {
+        systemInstruction: "You are a paint visualization tool. When asked to paint walls a color, you MUST identify and paint EVERY painted wall surface in the image, including accent walls, colored sections, columns, recesses, and trim. Do not skip walls because they're currently a different color. Do not preserve accent colors. All painted wall surfaces must be painted uniformly with the specified color. The output must be visibly different - all walls must show the new color clearly."
       }
     });
 
     // Check for errors in response
-    if (response.candidates?.[0]?.finishReason === 'SAFETY') {
+    const finishReason = response.candidates?.[0]?.finishReason;
+    
+    if (finishReason === 'SAFETY') {
       throw new Error("Content was blocked for safety reasons. Try a different color.");
     }
 
     // Extract the image from the response
     const parts = response.candidates?.[0]?.content?.parts;
+    
     if (parts) {
       for (const part of parts) {
         if (part.inlineData && part.inlineData.data) {
-          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          const result = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          
+          // Check if result is identical to input (simple string comparison)
+          // Note: base64Image is already just the base64 data (no data URL prefix)
+          // This won't catch subtle changes, but will catch exact duplicates
+          const inputBase64 = base64Image.replace(/^data:image\/[^;]+;base64,/, ''); // Remove prefix if present
+          const resultBase64 = part.inlineData.data;
+          
+          if (inputBase64 === resultBase64) {
+            throw new Error("The AI returned an unchanged image. Please try a different color or upload a clearer photo of the walls.");
+          }
+          
+          return result;
         }
       }
     }
     
+    console.error('No image data in response. Response structure:', {
+      candidates: response.candidates?.length,
+      finishReason: response.candidates?.[0]?.finishReason,
+      parts: parts?.length
+    });
     throw new Error("Failed to generate visualization image. No image data in response.");
   } catch (error: any) {
     // Handle quota/rate limit errors

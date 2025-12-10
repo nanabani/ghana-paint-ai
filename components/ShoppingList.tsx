@@ -23,7 +23,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
       {/* Back button */}
       <button 
         onClick={onBack}
-        className="flex items-center text-ink-subtle hover:text-ink mb-10 transition-colors group animate-reveal"
+        className="flex items-center text-ink-subtle hover:text-ink mb-10 transition-colors group animate-reveal touch-manipulation"
         aria-label="Go back to design view"
       >
         <div className="w-10 h-10 rounded-full bg-paper-elevated border border-stone-200 flex items-center justify-center mr-3 group-hover:border-stone-300 transition-colors">
@@ -119,7 +119,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
                 </p>
               </div>
               <button 
-                className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/15 rounded-xl backdrop-blur-sm transition-colors font-medium text-sm"
+                className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/15 rounded-xl backdrop-blur-sm transition-colors font-medium text-sm touch-manipulation"
                 aria-label="Share this list"
               >
                 <MessageCircle className="w-4 h-4" />
@@ -156,7 +156,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
             {/* Action buttons */}
             <div className="space-y-3">
               <button 
-                className="w-full py-4 bg-ink text-white rounded-xl font-semibold hover:bg-ink/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-ink text-white rounded-xl font-semibold hover:bg-ink/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 touch-manipulation"
                 aria-label="Book a professional painter"
               >
                 <Hammer className="w-4 h-4 text-accent" />
@@ -164,7 +164,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
               </button>
               
               <button 
-                className="w-full py-4 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl font-semibold hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl font-semibold hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 touch-manipulation"
                 aria-label="Order materials via WhatsApp"
               >
                 <Phone className="w-4 h-4" />
