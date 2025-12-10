@@ -91,9 +91,10 @@ export const analyzeImageForPaint = async (base64Image: string): Promise<Analysi
   const analysisSchema: Schema = {
     type: Type.OBJECT,
     properties: {
-      surfaceType: { type: Type.STRING, description: "The material of the wall/surface (e.g., Concrete, Plaster, Wood)" },
-      condition: { type: Type.STRING, description: "Current condition of the surface (e.g., Peeling, Moldy, New, Good)" },
-      estimatedAreaWarning: { type: Type.STRING, description: "A brief note about needing measurements." },
+      surfaceType: { type: Type.STRING, description: "Wall material: Concrete/Plaster/Wood" },
+      condition: { type: Type.STRING, description: "Surface condition: New/Good/Peeling/Moldy" },
+      description: { type: Type.STRING, description: "Brief description of the current wall appearance and features" },
+      estimatedAreaWarning: { type: Type.STRING, description: "Note about measurements needed" },
       palettes: {
         type: Type.ARRAY,
         items: {
@@ -106,7 +107,7 @@ export const analyzeImageForPaint = async (base64Image: string): Promise<Analysi
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  name: { type: Type.STRING, description: "Creative paint name" },
+                  name: { type: Type.STRING, description: "Paint color name" },
                   hex: { type: Type.STRING, description: "Hex color code" }
                 }
               }
@@ -133,18 +134,19 @@ export const analyzeImageForPaint = async (base64Image: string): Promise<Analysi
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-        { text: `Analyze this room image. Identify: 1) Surface material (Concrete/Plaster/Wood), 2) Condition (New/Good/Peeling/Moldy). Generate 3 color palettes:
-1. "AI-CURATED SUGGESTION" - Select 3-4 premium colors from ALL available manufacturer colors that best match this room's architecture, lighting, and style. Available colors: ${allColorsList}
-2. "NEUCE PAINTS" - Select 4-5 colors from this Neuce list that best match the room's style and lighting: ${neuceColorList}
-3. "AZAR PAINTS" - Select 4-5 colors from this Azar list that best match the room's style and lighting: ${azarColorList}
+        { text: `Identify surface material, condition, and briefly describe the appearance of the walls and indicate if any treatments are needed. Determine if interior or exterior space. Generate 3 palettes:
+1. "AI-CURATED SUGGESTION" - 3-4 colors from: ${allColorsList}
+   Include: (a) colors similar to current wall (to identify existing paint), (b) new complementary colors that match the space style.
+2. "NEUCE PAINTS" - 4-5 colors from: ${neuceColorList}
+3. "AZAR PAINTS" - 4-5 colors from: ${azarColorList}
 
-CRITICAL: ALL palettes MUST only use colors from the provided manufacturer lists above. You MUST use the exact name and hex value provided. Do NOT invent, modify, or create new color names or hex codes. Every color must come from the manufacturer lists.` }
+Use ONLY colors from lists above. Use exact name and hex provided.` }
       ]
     },
     config: {
       responseMimeType: 'application/json',
       responseSchema: analysisSchema,
-      systemInstruction: "You are a professional architectural consultant in Ghana. Be practical and aesthetic. When selecting manufacturer colors, choose colors that match the room's architecture, lighting, and style."
+      systemInstruction: "Architectural consultant in Ghana. For AI-CURATED: include colors similar to current wall (for identification) and new complementary colors (for alternatives). Match space style and lighting."
     }
   });
 
@@ -162,7 +164,7 @@ export const visualizeColor = async (base64Image: string, colorName: string, col
       contents: {
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: `Repaint the walls in the image with the color ${colorName} (approximate hex: ${colorHex}). Keep the ceiling, floor, and fixtures unchanged. Maintain realistic lighting and shadows.` }
+          { text: `Apply ${colorName} (${colorHex}) to walls only. If interior: preserve ceiling, floor, fixtures. If exterior: preserve sky, ground, windows, doors. Maintain realistic lighting.` }
         ]
       }
     });
@@ -235,13 +237,13 @@ export const generateShoppingList = async (
     contents: {
       parts: [
         // Removed image - we already have analysis results
-        { text: `Create a detailed shopping list for painting a ${surfaceType} wall (Condition: ${condition}). The user has selected the color '${selectedColor}'. The estimated area is ${area} square meters. Include primer if needed for the condition. Include HIGH MARGIN hardware like brushes, rollers, trays, masking tape, and drop cloths. Prices should be realistic for the Ghanaian market in GHS.` }
+        { text: `Shopping list: ${surfaceType} wall, ${condition} condition, color '${selectedColor}', ${area}m². Include primer if needed. Add brushes, rollers, trays, masking tape, drop cloths. Prices in GHS.` }
       ]
     },
     config: {
       responseMimeType: 'application/json',
       responseSchema: shoppingSchema,
-      systemInstruction: "You are a sales manager at a hardware store in Accra. You ensure the customer has EVERYTHING they need for a professional job, not just paint. Upsell necessary tools."
+      systemInstruction: "Hardware store sales manager in Koforidua. Include all necessary tools and materials."
     }
   });
 

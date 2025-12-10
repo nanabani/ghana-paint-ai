@@ -233,15 +233,22 @@ const Visualizer: React.FC<VisualizerProps> = ({
           
           {/* Surface Analysis Card */}
           {analysis ? (
-            <div className="bg-paper-elevated rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-100 flex items-center gap-3 sm:gap-4 animate-reveal-up delay-1">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                <Info className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-600" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h4 className="font-semibold text-ink text-sm">Surface Analysis</h4>
-                <p className="text-xs sm:text-sm text-ink-subtle truncate">
-                  <span className="font-medium text-ink">{analysis.surfaceType}</span> • {analysis.condition}
-                </p>
+            <div className="bg-paper-elevated rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-100 animate-reveal-up delay-1">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                  <Info className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-semibold text-ink text-sm mb-1.5">Surface Analysis</h4>
+                  <p className="text-xs sm:text-sm text-ink-subtle mb-2">
+                    <span className="font-medium text-ink">{analysis.surfaceType}</span> • {analysis.condition}
+                  </p>
+                  {analysis.description && (
+                    <p className="text-xs sm:text-sm text-ink-muted leading-relaxed">
+                      {analysis.description}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           ) : (

@@ -7,6 +7,7 @@ export interface Palette {
 export interface AnalysisResult {
   surfaceType: string;
   condition: string;
+  description: string;
   estimatedAreaWarning: string;
   palettes: Palette[];
 }

@@ -59,7 +59,7 @@ const App: React.FC = () => {
       const cacheKey = `analysis_${imageHash}`;
       
       // Step 3: Analyze (with cache check)
-      setLoadingMessage('Analyzing room architecture and lighting...');
+      setLoadingMessage('Analyzing space architecture and lighting...');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
         setLoadingMessage('Identifying surfaces and materials...');
         const result = await analyzeImageForPaint(compressedBase64);

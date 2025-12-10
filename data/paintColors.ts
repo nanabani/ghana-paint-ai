@@ -57,7 +57,8 @@ export const getColorsByManufacturer = (manufacturer: string): PaintColor[] => {
  */
 export const formatColorsForPrompt = (colors: PaintColor[]): string => {
   if (colors.length === 0) return 'No colors available';
-  return colors.map(c => `${c.name} ${c.hex}${c.code ? ` (Code: ${c.code})` : ''}`).join(', ');
+  // Optimized format: saves ~3 tokens per color by removing parentheses
+  return colors.map(c => `${c.name} ${c.hex}${c.code ? ` ${c.code}` : ''}`).join(', ');
 };
 
 /**

@@ -42,7 +42,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
         <p 
           className="animate-reveal-up delay-2 max-w-2xl mx-auto text-lg sm:text-xl text-ink-muted leading-relaxed mb-12"
         >
-          Upload a photo of any room. Our AI visualizes new colors instantly 
+          Upload a photo of your space. Our AI visualizes new colors instantly 
           and generates a complete shopping list with local Ghanaian prices.
         </p>
         
