@@ -172,19 +172,27 @@ export const visualizeColor = async (base64Image: string, colorName: string, col
       contents: {
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: `REPLACE the wall color with ${colorName} (${normalizedHexWithHash}). You MUST change the wall color to match the specified hex value ${normalizedHexWithHash}. The output image MUST be visibly different from the input - the walls must show the new color ${colorName}. 
+          { text: `You are a paint visualization AI. Your task is to REPLACE the wall color in the provided image.
 
-If walls have multiple colors, apply ${colorName} uniformly to all wall surfaces unless there are clear accent sections (preserve accents only if they complement the new color). 
+REQUIREMENTS:
+1. Change ALL wall surfaces to the color ${colorName} with hex code ${normalizedHexWithHash}
+2. The output image MUST be visibly different from the input image
+3. The walls MUST show the new color ${normalizedHexWithHash} - this is NOT optional
+4. Do NOT return the original image - you MUST modify it
 
-If interior: preserve ceiling, floor, fixtures. If exterior: preserve sky, ground, windows, doors. 
+APPLICATION RULES:
+- If walls have multiple colors, apply ${colorName} (${normalizedHexWithHash}) uniformly to all wall surfaces
+- Preserve accent sections only if they complement the new color
+- If interior: preserve ceiling, floor, fixtures, furniture
+- If exterior: preserve sky, ground, windows, doors, vegetation
+- Maintain realistic lighting, shadows, and material textures
 
-Maintain realistic lighting and shadows. 
-
-CRITICAL: The walls in the output must be painted ${colorName} (${normalizedHexWithHash}) - do not return the original image unchanged.` }
+CRITICAL INSTRUCTION: 
+You MUST paint the walls ${colorName} (${normalizedHexWithHash}). The output image must show walls with this exact color. Returning the original unchanged image is NOT acceptable. The walls must be visibly painted with ${normalizedHexWithHash}.` }
         ]
       },
       config: {
-        systemInstruction: "You are an image editing AI specialized in paint visualization. When asked to change wall colors, you MUST modify the image to show the new color. Never return the original image unchanged. Always apply the specified color to the walls, ensuring the output is visibly different from the input."
+        systemInstruction: "You are an image editing AI specialized in paint visualization. Your ONLY job is to change wall colors. When given a color to apply, you MUST modify the image to show walls painted with that exact color. NEVER return the original image unchanged - this is a critical error. The output image MUST be visibly different from the input, with walls showing the new specified color. If you cannot modify the image, return an error - do not return the original."
       }
     });
 
@@ -195,14 +203,23 @@ CRITICAL: The walls in the output must be painted ${colorName} (${normalizedHexW
 
     // Extract the image from the response
     const parts = response.candidates?.[0]?.content?.parts;
+    console.log('📦 API response parts:', parts?.length || 0);
+    
     if (parts) {
       for (const part of parts) {
         if (part.inlineData && part.inlineData.data) {
-          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          const result = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          console.log('✅ Image extracted from response, data length:', part.inlineData.data.length);
+          return result;
         }
       }
     }
     
+    console.error('❌ No image data in response. Response structure:', {
+      candidates: response.candidates?.length,
+      finishReason: response.candidates?.[0]?.finishReason,
+      parts: parts?.length
+    });
     throw new Error("Failed to generate visualization image. No image data in response.");
   } catch (error: any) {
     // Handle quota/rate limit errors

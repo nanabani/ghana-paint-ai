@@ -48,9 +48,11 @@ const Visualizer: React.FC<VisualizerProps> = ({
   }, [visualizedImage, selectedColor, isVisualizing]);
 
   const handleColorSelect = (color: {name: string, hex: string}) => {
+    console.log('🎨 Color selected:', { name: color.name, hex: color.hex });
     setSelectedColor(color);
     // Clear visualized image immediately for instant feedback
     setActiveTab('original');
+    console.log('📞 Calling onVisualize with:', { name: color.name, hex: color.hex });
     onVisualize(color.name, color.hex);
     // Smoothly scroll to visualizer to show the updated preview
     if (onScrollToVisualizer) {
