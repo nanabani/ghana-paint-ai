@@ -164,58 +164,82 @@ export const visualizeColor = async (base64Image: string, colorName: string, col
     const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
     const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
     
-    // Log for debugging
-    console.log('🎨 Visualizing color:', { colorName, originalHex: colorHex, normalizedHex: normalizedHexWithHash });
-    
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: `You are a paint visualization AI. Your task is to REPLACE the wall color in the provided image.
+          { text: `Paint ALL wall surfaces in this image with the color ${colorName} (${normalizedHexWithHash}).
 
-REQUIREMENTS:
-1. Change ALL wall surfaces to the color ${colorName} with hex code ${normalizedHexWithHash}
-2. The output image MUST be visibly different from the input image
-3. The walls MUST show the new color ${normalizedHexWithHash} - this is NOT optional
-4. Do NOT return the original image - you MUST modify it
+CRITICAL: Paint EVERY wall surface, regardless of its current color or whether it appears to be an accent.
 
-APPLICATION RULES:
-- If walls have multiple colors, apply ${colorName} (${normalizedHexWithHash}) uniformly to all wall surfaces
-- Preserve accent sections only if they complement the new color
-- If interior: preserve ceiling, floor, fixtures, furniture
-- If exterior: preserve sky, ground, windows, doors, vegetation
-- Maintain realistic lighting, shadows, and material textures
+WALLS TO PAINT (include ALL of these):
+1. Main walls (front, back, side walls)
+2. Accent walls or colored sections (even if currently a different color like orange, red, etc.)
+3. Structural columns or pillars that are painted (not stone/brick)
+4. Recessed wall areas (like balcony interiors, alcoves, niches)
+5. Wall trim or painted roofline sections
+6. Partial walls visible in the frame
+7. Walls at different angles or depths
+8. Walls behind or beside objects
+9. Background building walls (if visible)
+10. ANY vertical painted surface - if it's painted, it's a wall
 
-CRITICAL INSTRUCTION: 
-You MUST paint the walls ${colorName} (${normalizedHexWithHash}). The output image must show walls with this exact color. Returning the original unchanged image is NOT acceptable. The walls must be visibly painted with ${normalizedHexWithHash}.` }
+PAINTING RULES:
+- Apply ${normalizedHexWithHash} to EVERY wall surface listed above
+- Do NOT preserve any walls in their original color (even accent colors)
+- Do NOT skip walls because they're currently a different color
+- Paint uniformly - all walls must show ${normalizedHexWithHash}
+- If a section is painted (not stone/brick/wood), it's a wall - paint it
+
+PRESERVE (do NOT paint):
+- Windows and window frames
+- Doors and door frames
+- Ceiling, floor, ground
+- Sky, vegetation, trees
+- Furniture, fixtures, railings
+- Stone, brick, or wood cladding (only painted surfaces are walls)
+- Metal elements (unless they're painted walls)
+
+The output must show ALL painted wall surfaces uniformly painted ${normalizedHexWithHash}.` }
         ]
       },
       config: {
-        systemInstruction: "You are an image editing AI specialized in paint visualization. Your ONLY job is to change wall colors. When given a color to apply, you MUST modify the image to show walls painted with that exact color. NEVER return the original image unchanged - this is a critical error. The output image MUST be visibly different from the input, with walls showing the new specified color. If you cannot modify the image, return an error - do not return the original."
+        systemInstruction: "You are a paint visualization tool. When asked to paint walls a color, you MUST identify and paint EVERY painted wall surface in the image, including accent walls, colored sections, columns, recesses, and trim. Do not skip walls because they're currently a different color. Do not preserve accent colors. All painted wall surfaces must be painted uniformly with the specified color. The output must be visibly different - all walls must show the new color clearly."
       }
     });
 
     // Check for errors in response
-    if (response.candidates?.[0]?.finishReason === 'SAFETY') {
+    const finishReason = response.candidates?.[0]?.finishReason;
+    
+    if (finishReason === 'SAFETY') {
       throw new Error("Content was blocked for safety reasons. Try a different color.");
     }
 
     // Extract the image from the response
     const parts = response.candidates?.[0]?.content?.parts;
-    console.log('📦 API response parts:', parts?.length || 0);
     
     if (parts) {
       for (const part of parts) {
         if (part.inlineData && part.inlineData.data) {
           const result = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-          console.log('✅ Image extracted from response, data length:', part.inlineData.data.length);
+          
+          // Check if result is identical to input (simple string comparison)
+          // Note: base64Image is already just the base64 data (no data URL prefix)
+          // This won't catch subtle changes, but will catch exact duplicates
+          const inputBase64 = base64Image.replace(/^data:image\/[^;]+;base64,/, ''); // Remove prefix if present
+          const resultBase64 = part.inlineData.data;
+          
+          if (inputBase64 === resultBase64) {
+            throw new Error("The AI returned an unchanged image. Please try a different color or upload a clearer photo of the walls.");
+          }
+          
           return result;
         }
       }
     }
     
-    console.error('❌ No image data in response. Response structure:', {
+    console.error('No image data in response. Response structure:', {
       candidates: response.candidates?.length,
       finishReason: response.candidates?.[0]?.finishReason,
       parts: parts?.length

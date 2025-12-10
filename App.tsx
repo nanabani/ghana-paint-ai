@@ -139,16 +139,12 @@ const App: React.FC = () => {
   };
 
   const handleVisualize = async (colorName: string, colorHex: string) => {
-    console.log('🚀 handleVisualize called:', { colorName, colorHex, hasBase64: !!base64Raw });
-    
     if (!base64Raw) {
-      console.warn('⚠️ No base64Raw, returning early');
       return;
     }
     
     // Rate limiting
     if (visualizationCount >= MAX_VISUALIZATIONS) {
-      console.warn('⚠️ Rate limit reached:', visualizationCount);
       setError(`You've reached the limit of ${MAX_VISUALIZATIONS} visualizations per session. Please start a new project to try more colors.`);
       return;
     }
@@ -176,18 +172,8 @@ const App: React.FC = () => {
       // Using normalized hex ensures consistent cache keys regardless of input format
       const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
       
-      // Log for debugging
-      console.log('🔄 Visualize request:', { 
-        colorName, 
-        originalHex: colorHex, 
-        normalizedHex: normalizedHexWithHash,
-        cacheKey,
-        requestId 
-      });
-      
       // Check cache first
       const cached = await ImageCache.getOrSet(cacheKey, async () => {
-        console.log('💾 Cache miss - calling API for:', { colorName, normalizedHex: normalizedHexWithHash });
         // Verify this is still the current request
         if (currentRequestRef.current !== requestId) {
           throw new Error('Request cancelled');
@@ -196,8 +182,6 @@ const App: React.FC = () => {
         setLoadingMessage('Applying paint color to walls...');
         // Pass normalized hex to ensure consistency
         const result = await visualizeColor(base64Raw, colorName, normalizedHexWithHash);
-        
-        console.log('✅ API response received, result length:', result?.length || 0);
         
         // Verify again before returning
         if (currentRequestRef.current !== requestId) {
@@ -208,27 +192,20 @@ const App: React.FC = () => {
         return result;
       });
       
-      if (cached) {
-        console.log('💾 Using cached result, length:', cached?.length || 0);
-      }
-      
       // CRITICAL FIX: Validate request ID before using cached result
       // This prevents stale cached results from previous images
       if (currentRequestRef.current !== requestId) {
         // Request was cancelled, ignore result
-        console.log('⚠️ Request cancelled, ignoring result');
         return;
       }
       
       // Basic check: ensure we have a valid result
       if (!cached || typeof cached !== 'string' || cached.length < 100) {
-        console.error('❌ Invalid cached result:', { cached: cached?.substring(0, 50), length: cached?.length });
         setError('Invalid visualization result. Please try again.');
         setLoadingMessage('');
         return;
       }
       
-      console.log('✅ Setting visualized image, length:', cached.length);
       setVisualizedImage(cached);
       setLoadingMessage('');
     } catch (err: any) {

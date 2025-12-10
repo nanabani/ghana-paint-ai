@@ -48,11 +48,9 @@ const Visualizer: React.FC<VisualizerProps> = ({
   }, [visualizedImage, selectedColor, isVisualizing]);
 
   const handleColorSelect = (color: {name: string, hex: string}) => {
-    console.log('🎨 Color selected:', { name: color.name, hex: color.hex });
     setSelectedColor(color);
     // Clear visualized image immediately for instant feedback
     setActiveTab('original');
-    console.log('📞 Calling onVisualize with:', { name: color.name, hex: color.hex });
     onVisualize(color.name, color.hex);
     // Smoothly scroll to visualizer to show the updated preview
     if (onScrollToVisualizer) {
@@ -328,10 +326,6 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 {analysis ? (
                   analysis.palettes.map((palette, idx) => {
                     const isAI = palette.name.toUpperCase().includes("AI-CURATED");
-                    // Debug: Log color data to help identify issues
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log('Palette:', palette.name, 'Colors:', palette.colors);
-                    }
                     return (
                       <div 
                         key={idx} 
