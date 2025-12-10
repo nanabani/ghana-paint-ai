@@ -52,10 +52,6 @@ const Visualizer: React.FC<VisualizerProps> = ({
     // Clear visualized image immediately for instant feedback
     setActiveTab('original');
     onVisualize(color.name, color.hex);
-    // Collapse palette on mobile after selection
-    if (window.innerWidth < 1024) {
-      setIsPaletteExpanded(false);
-    }
     // Smoothly scroll to visualizer to show the updated preview
     if (onScrollToVisualizer) {
       // Small delay to ensure state updates are processed
