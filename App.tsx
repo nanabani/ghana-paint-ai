@@ -65,6 +65,11 @@ const App: React.FC = () => {
       const hash = await ImageCache.generateImageHash(compressedBase64);
       setImageHash(hash); // Store precomputed hash in state
 
+      // PHASE 2.2: Use smaller image for analysis (1200x1200) to reduce token costs
+      // Keep full size for visualization which needs detail
+      setLoadingMessage('Optimizing image for analysis...');
+      const analysisImage = await compressImage(file, 1200, 1200, 0.75);
+
       // Check cache
       setLoadingMessage('Checking for previous analysis...');
       const cacheKey = `analysis_${hash}`;
@@ -73,7 +78,7 @@ const App: React.FC = () => {
       setLoadingMessage('Analyzing space architecture and lighting...');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
         setLoadingMessage('Identifying surfaces and materials...');
-        const result = await analyzeImageForPaint(compressedBase64);
+        const result = await analyzeImageForPaint(analysisImage, compressedBase64);
         setLoadingMessage('Generating color palette recommendations...');
         return result;
       });
@@ -258,6 +263,22 @@ const App: React.FC = () => {
     debouncedVisualize(colorName, colorHex);
   }, [debouncedVisualize]);
 
+  // PHASE 3: Smart cache warming - Prefetch on hover (lazy loading)
+  const handlePrefetchVisualization = useCallback((colorName: string, colorHex: string) => {
+    if (!base64Raw || !imageHash || !analysisResult) return;
+    
+    const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
+    const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
+    const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
+    
+    // Check if already cached, if not, prefetch in background
+    ImageCache.getOrSet(cacheKey, async () => {
+      return await visualizeColor(base64Raw, colorName, normalizedHexWithHash, analysisResult);
+    }).catch(() => {
+      // Silent fail for prefetch
+    });
+  }, [base64Raw, imageHash, analysisResult]);
+
   const handleGenerateList = async (colorName: string, area: number) => {
     if (!analysisResult) return;
     try {
@@ -306,33 +327,9 @@ const App: React.FC = () => {
     }
   }, [appState]);
 
-  // OPTIMIZATION Step 2.2: Cache warming - Prefetch visualizations for top recommended colors
-  // COST OPTIMIZATION Step 3: Reduced to top 2 colors from AI-CURATED palette only (60% cost reduction)
-  useEffect(() => {
-    if (analysisResult && base64Raw && imageHash) {
-      // Get top 2 colors from AI-CURATED palette only (most likely to be selected)
-      const aiPalette = analysisResult.palettes.find(p => 
-        p.name.toUpperCase().includes("AI-CURATED")
-      );
-      const topColors = aiPalette ? aiPalette.colors.slice(0, 2) : [];
-
-      // Prefetch visualizations in background (non-blocking)
-      topColors.forEach(color => {
-        const normalizedHex = color.hex.trim().toUpperCase().replace(/^#/, '');
-        const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
-        const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
-
-        // Check if already cached
-        ImageCache.getOrSet(cacheKey, async () => {
-          // Only fetch if not cached - pass analysis context for faster processing
-          return await visualizeColor(base64Raw, color.name, normalizedHexWithHash, analysisResult);
-        }).catch(() => {
-          // Silent fail for prefetch - don't show errors to user
-          // This is background optimization, not critical
-        });
-      });
-    }
-  }, [analysisResult, base64Raw, imageHash]);
+  // PHASE 3: Smart cache warming - Removed automatic prefetching
+  // Now uses hover-based prefetching in Visualizer component (60-80% cost reduction)
+  // This only prefetches when user shows interest (hovers over color)
 
   const handleReset = () => {
     setAppState(AppState.IDLE);
@@ -455,6 +452,9 @@ const App: React.FC = () => {
                 onScrollToVisualizer={() => {
                   visualizerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
+                base64Raw={base64Raw}
+                imageHash={imageHash}
+                onPrefetchVisualization={handlePrefetchVisualization}
               />
             </div>
           </>

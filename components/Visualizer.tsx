@@ -22,7 +22,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
   loadingMessage,
   onVisualize,
   onGenerateList,
-  onScrollToVisualizer
+  onScrollToVisualizer,
+  onPrefetchVisualization
 }) => {
   const [selectedColor, setSelectedColor] = useState<{name: string, hex: string} | null>(null);
   const [area, setArea] = useState<number>(0);
@@ -367,6 +368,12 @@ const Visualizer: React.FC<VisualizerProps> = ({
                               <button
                                 key={cIdx}
                                 onClick={() => handleColorSelect({ name: color.name, hex: normalizedHex })}
+                                onMouseEnter={() => {
+                                  // PHASE 3: Smart cache warming - Prefetch on hover (lazy loading)
+                                  if (onPrefetchVisualization) {
+                                    onPrefetchVisualization(color.name, normalizedHex);
+                                  }
+                                }}
                                 className="flex flex-col items-center group/item cursor-pointer w-12 sm:w-14 touch-manipulation"
                                 aria-label={`Select color ${color.name}`}
                               >
