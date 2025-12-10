@@ -151,7 +151,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 onClick={() => setActiveTab(tab)}
                 disabled={tab === 'visualized' && !visualizedImage}
                 className={`
-                  px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all capitalize touch-manipulation
+                  px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-base sm:text-sm font-medium transition-all capitalize touch-manipulation
                   ${activeTab === tab 
                     ? 'bg-white text-ink shadow-lg' 
                     : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -211,7 +211,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                   onClick={() => setActiveTab(tab)}
                   disabled={tab === 'visualized' && !visualizedImage}
                   className={`
-                    px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all capitalize touch-manipulation
+                    px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-sm sm:text-base font-medium transition-all capitalize touch-manipulation
                     ${activeTab === tab 
                       ? 'bg-white text-ink shadow-md' 
                       : 'text-white/80 hover:text-white hover:bg-white/10'
@@ -230,11 +230,11 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 <div className="bg-paper-elevated px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-3 shadow-2xl border border-stone-100">
                   <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-accent animate-spin flex-shrink-0" />
                   <div>
-                    <p className="font-semibold text-ink text-xs sm:text-sm">
+                    <p className="font-semibold text-ink text-sm sm:text-base">
                       {loadingMessage || 'Painting walls...'}
                     </p>
                     {selectedColor && (
-                      <p className="text-[10px] sm:text-xs text-ink-subtle mt-0.5">
+                      <p className="text-xs sm:text-sm text-ink-subtle mt-0.5">
                         Applying {selectedColor.name}
                       </p>
                     )}
@@ -252,12 +252,12 @@ const Visualizer: React.FC<VisualizerProps> = ({
                   <Info className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-600" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-semibold text-ink text-sm mb-1.5">Surface Analysis</h4>
-                  <p className="text-xs sm:text-sm text-ink-subtle mb-2">
+                  <h4 className="font-semibold text-ink text-base sm:text-lg mb-1.5">Surface Analysis</h4>
+                  <p className="text-sm sm:text-base text-ink-subtle mb-2">
                     <span className="font-medium text-ink">{analysis.surfaceType}</span> • {analysis.condition}
                   </p>
                   {analysis.description && (
-                    <p className="text-xs sm:text-sm text-ink-muted leading-relaxed">
+                    <p className="text-sm sm:text-base text-ink-muted leading-relaxed">
                       {analysis.description}
                     </p>
                   )}
@@ -270,8 +270,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 <Loader2 className="w-4 sm:w-5 h-4 sm:h-5 text-accent animate-spin" />
               </div>
               <div className="space-y-1.5 sm:space-y-2 flex-1">
-                <h4 className="font-semibold text-ink text-sm">Analyzing Your Space</h4>
-                <p className="text-xs sm:text-sm text-accent font-medium">
+                <h4 className="font-semibold text-ink text-base sm:text-lg">Analyzing Your Space</h4>
+                <p className="text-sm sm:text-base text-accent font-medium">
                   {loadingMessage || 'Analyzing architecture and lighting conditions...'}
                 </p>
               </div>
@@ -295,17 +295,17 @@ const Visualizer: React.FC<VisualizerProps> = ({
                   <Palette className="w-5 h-5 text-accent" />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-base sm:text-lg font-semibold text-ink">Choose a Color</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold text-ink">Choose a Color</h3>
                   {selectedColor ? (
                     <div className="flex items-center gap-2 mt-0.5">
                       <div 
                         className="w-3 h-3 rounded-full border border-ink/10" 
                         style={{ backgroundColor: normalizeHex(selectedColor.hex) }}
                       />
-                      <span className="text-xs sm:text-sm text-accent font-medium">{selectedColor.name}</span>
+                      <span className="text-sm sm:text-base text-accent font-medium">{selectedColor.name}</span>
                     </div>
                   ) : (
-                    <p className="text-xs sm:text-sm text-ink-subtle">Tap to select a paint color</p>
+                    <p className="text-sm sm:text-base text-ink-subtle">Tap to select a paint color</p>
                   )}
                 </div>
               </div>
@@ -338,7 +338,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                         `}
                       >
                         <div className="flex items-center justify-between mb-3 sm:mb-4">
-                          <h4 className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 sm:gap-2 ${isAI ? 'text-accent' : 'text-ink-muted'}`}>
+                          <h4 className={`text-xs sm:text-sm font-semibold uppercase tracking-wider flex items-center gap-1.5 sm:gap-2 ${isAI ? 'text-accent' : 'text-ink-muted'}`}>
                             {isAI ? (
                               <Sparkles className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                             ) : (
@@ -347,7 +347,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                             <span className="truncate">{palette.name.replace("AI-CURATED SUGGESTION", "AI Pick")}</span>
                           </h4>
                           {isAI && (
-                            <span className="text-[9px] sm:text-[10px] font-bold bg-accent text-white px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0">
+                            <span className="text-[10px] sm:text-xs font-bold bg-accent text-white px-1.5 sm:px-2 py-0.5 rounded-full flex-shrink-0">
                               TOP
                             </span>
                           )}
@@ -381,7 +381,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                                   )}
                                 </div>
                                 <span className={`
-                                  text-[9px] sm:text-[10px] font-medium text-center leading-tight line-clamp-2
+                                  text-xs sm:text-sm font-medium text-center leading-tight line-clamp-2
                                   ${selectedColor?.name === color.name ? 'text-accent font-semibold' : 'text-ink-subtle'}
                                 `}>
                                   {color.name}
@@ -400,7 +400,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                               <div className="relative w-12 h-12 sm:w-11 sm:h-11 rounded-full border-2 border-dashed border-ink/20 group-hover/more:border-accent group-hover/more:bg-accent-soft/20 flex items-center justify-center transition-all duration-200 mb-1.5 sm:mb-2 group-active/more:scale-95">
                                 <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-ink-subtle group-hover/more:text-accent transition-colors" />
                               </div>
-                              <span className="text-[9px] sm:text-[10px] font-medium text-center leading-tight text-ink-subtle group-hover/more:text-accent transition-colors">
+                              <span className="text-xs sm:text-sm font-medium text-center leading-tight text-ink-subtle group-hover/more:text-accent transition-colors">
                                 +{palette.colors.length - INITIAL_COLORS_TO_SHOW}
                               </span>
                             </button>
@@ -438,14 +438,14 @@ const Visualizer: React.FC<VisualizerProps> = ({
             />
             
             <div className="relative z-10">
-              <h3 className="text-sm sm:text-base font-semibold mb-4 sm:mb-5 flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-5 flex items-center gap-2">
                 <Paintbrush className="w-4 h-4 text-accent" />
                 Get Shopping List
               </h3>
               
               <div className="space-y-4 sm:space-y-5">
                 <div>
-                  <label className="text-[10px] sm:text-xs font-medium text-white/60 uppercase tracking-wide block mb-1.5 sm:mb-2">
+                  <label className="text-xs sm:text-sm font-medium text-white/60 uppercase tracking-wide block mb-1.5 sm:mb-2">
                     Area to Paint
                   </label>
                   <div className="flex items-center gap-2 sm:gap-3">
@@ -469,12 +469,12 @@ const Visualizer: React.FC<VisualizerProps> = ({
                       disabled={!analysis}
                       className="
                         flex-1 bg-white/10 border border-white/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 
-                        text-white placeholder-white/40 text-sm sm:text-base
+                        text-white placeholder-white/40 text-base sm:text-lg
                         focus:ring-2 focus:ring-accent focus:border-transparent outline-none 
                         transition-all disabled:opacity-40 disabled:cursor-not-allowed
                       "
                     />
-                    <span className="font-medium text-white/60 text-xs sm:text-sm">m²</span>
+                    <span className="font-medium text-white/60 text-sm sm:text-base">m²</span>
                   </div>
                 </div>
 
@@ -483,7 +483,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                   disabled={!selectedColor || area <= 0}
                   className="
                     w-full py-3 sm:py-4 bg-accent hover:bg-accent-hover text-white rounded-lg sm:rounded-xl 
-                    font-semibold text-sm sm:text-base shadow-lg disabled:opacity-40 disabled:cursor-not-allowed 
+                    font-semibold text-base sm:text-lg shadow-lg disabled:opacity-40 disabled:cursor-not-allowed 
                     transition-all active:scale-[0.98] touch-manipulation
                   "
                 >
