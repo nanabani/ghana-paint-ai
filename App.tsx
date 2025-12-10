@@ -9,6 +9,7 @@ import { ImageCache } from './services/cache';
 import { validateImage, ValidationResult } from './services/imageValidation';
 import ImageValidationModal from './components/ImageValidationModal';
 import ImageValidationBanner from './components/ImageValidationBanner';
+import { checkRateLimit, recordVisualization, recordImageUpload, isImageUploadedToday } from './services/rateLimiter';
 import { Loader2, Plus } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -21,8 +22,6 @@ const App: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [base64Raw, setBase64Raw] = useState<string>('');
-  const [visualizationCount, setVisualizationCount] = useState(0);
-  const MAX_VISUALIZATIONS = 5; // Rate limit per session
   const currentRequestRef = useRef<string | null>(null);
   const loadingRequestRef = useRef<string | null>(null);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
@@ -39,7 +38,6 @@ const App: React.FC = () => {
   const processImage = async (file: File) => {
     setError(null);
     setAnalysisResult(null);
-    setVisualizationCount(0);
     setLoadingMessage('');
     setValidationResult(null);
     // CRITICAL FIX: Clear previous visualization and cancel any pending requests
@@ -61,12 +59,29 @@ const App: React.FC = () => {
       const compressedBase64 = await compressImage(file, 1600, 1600, 0.80);
       setBase64Raw(compressedBase64);
 
-      // Step 2: Check cache
-      setLoadingMessage('Checking for previous analysis...');
+      // Step 2: Check image upload limit
       const imageHash = ImageCache.generateImageHash(compressedBase64);
+      const imageUploadCheck = recordImageUpload(imageHash);
+      
+      if (!imageUploadCheck.allowed) {
+        // Non-blocking: Allow but show warning if duplicate
+        if (isImageUploadedToday(imageHash)) {
+          // Duplicate image - allow but user can proceed
+          console.log('Image already uploaded today, but allowing');
+        } else {
+          // Max unique images reached - show error
+          setError(imageUploadCheck.reason || 'Image upload limit reached.');
+          setLoading(false);
+          setLoadingMessage('');
+          return;
+        }
+      }
+
+      // Step 3: Check cache
+      setLoadingMessage('Checking for previous analysis...');
       const cacheKey = `analysis_${imageHash}`;
       
-      // Step 3: Analyze (with cache check)
+      // Step 4: Analyze (with cache check)
       setLoadingMessage('Analyzing space architecture and lighting...');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
         setLoadingMessage('Identifying surfaces and materials...');
@@ -139,9 +154,10 @@ const App: React.FC = () => {
   const handleVisualize = async (colorName: string, colorHex: string) => {
     if (!base64Raw) return;
     
-    // Rate limiting
-    if (visualizationCount >= MAX_VISUALIZATIONS) {
-      setError(`You've reached the limit of ${MAX_VISUALIZATIONS} visualizations per session. Please start a new project to try more colors.`);
+    // Check rate limits before proceeding
+    const rateLimitCheck = checkRateLimit();
+    if (!rateLimitCheck.allowed) {
+      setError(rateLimitCheck.reason || 'Rate limit reached. Please try again later.');
       return;
     }
     
@@ -149,6 +165,7 @@ const App: React.FC = () => {
     const imageHash = ImageCache.generateImageHash(base64Raw);
     const requestId = `${imageHash}_${colorHex}`;
     currentRequestRef.current = requestId;
+    loadingRequestRef.current = requestId;
     
     // INSTANT UI UPDATE: Clear previous visualization immediately
     setVisualizedImage(null);
@@ -157,13 +174,14 @@ const App: React.FC = () => {
       setLoading(true);
       setError(null);
       setLoadingMessage('Checking cache...');
-      setVisualizationCount(prev => prev + 1);
       
       // Create cache key: image hash + color
       const cacheKey = `visualization_${imageHash}_${colorHex}`;
       
-      // Check cache first
-      const cached = await ImageCache.getOrSet(cacheKey, async () => {
+      // Check cache first - track if fetcher is called (indicates cache miss)
+      let fetcherWasCalled = false;
+      const cachedResult = await ImageCache.getOrSet(cacheKey, async () => {
+        fetcherWasCalled = true;
         // Verify this is still the current request
         if (currentRequestRef.current !== requestId) {
           throw new Error('Request cancelled');
@@ -188,7 +206,13 @@ const App: React.FC = () => {
         return;
       }
       
-      setVisualizedImage(cached);
+      // Only record visualization if it was an actual API call (not from cache)
+      // This prevents cache hits from counting against rate limits
+      if (fetcherWasCalled) {
+        recordVisualization();
+      }
+      
+      setVisualizedImage(cachedResult);
       setLoadingMessage('');
     } catch (err: any) {
       // Ignore cancellation errors silently
@@ -198,15 +222,15 @@ const App: React.FC = () => {
       
       // Only show error if this is still the current request
       if (currentRequestRef.current === requestId) {
-        setVisualizationCount(prev => prev - 1); // Rollback on error
         console.error(err);
         setError(err.message || "Could not generate visualization. Try another color.");
         setLoadingMessage('');
       }
     } finally {
-      // Only clear loading if this is still the current request
-      if (currentRequestRef.current === requestId) {
+      // Only clear loading if this request owns the loading state
+      if (loadingRequestRef.current === requestId) {
         setLoading(false);
+        loadingRequestRef.current = null;
       }
     }
   };
@@ -245,7 +269,6 @@ const App: React.FC = () => {
     setShoppingList(null);
     setError(null);
     setLoadingMessage('');
-    setVisualizationCount(0);
     setValidationResult(null);
     setShowValidationModal(false);
     setPendingFile(null);
