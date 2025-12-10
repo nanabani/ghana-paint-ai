@@ -241,7 +241,7 @@ const App: React.FC = () => {
             setLoadingMessage(visualizationMessages[messageIndex]);
             messageIndex++;
           }
-        }, 4000); // Change message every 4 seconds
+        }, 5500); // Change message every 5.5 seconds (paint application takes longer)
         
         try {
           // OPTIMIZATION: Pass analysis context to speed up visualization (20-40% faster)
