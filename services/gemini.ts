@@ -9,6 +9,7 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 /**
  * Compress image before sending to API (reduces token costs)
+ * OPTIMIZATION Step 2.3: Adaptive compression based on file size
  */
 export const compressImage = async (
   file: File,
@@ -41,10 +42,42 @@ export const compressImage = async (
         }
 
         ctx.drawImage(img, 0, 0, width, height);
+        
+        // OPTIMIZATION: Adaptive quality based on file size
+        // Large files (>5MB): lower quality for faster processing
+        // Small files (<500KB): higher quality to preserve detail
+        let adaptiveQuality = quality;
+        if (file.size > 5 * 1024 * 1024) { // > 5MB
+          adaptiveQuality = 0.70; // Lower quality for large files
+        } else if (file.size < 500 * 1024) { // < 500KB
+          adaptiveQuality = 0.85; // Higher quality for small files
+        }
+
+        // Check WebP support and use it for better compression
+        const supportsWebP = canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+        const mimeType = supportsWebP ? 'image/webp' : 'image/jpeg';
+        
         canvas.toBlob(
           (blob) => {
             if (!blob) {
-              reject(new Error('Image compression failed'));
+              // Fallback to JPEG if WebP fails
+              canvas.toBlob(
+                (jpegBlob) => {
+                  if (!jpegBlob) {
+                    reject(new Error('Image compression failed'));
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    const base64 = reader.result as string;
+                    resolve(base64.split(',')[1]); // Remove data URL prefix
+                  };
+                  reader.onerror = reject;
+                  reader.readAsDataURL(jpegBlob);
+                },
+                'image/jpeg',
+                adaptiveQuality
+              );
               return;
             }
             const reader = new FileReader();
@@ -55,8 +88,8 @@ export const compressImage = async (
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           },
-          'image/jpeg',
-          quality
+          mimeType,
+          adaptiveQuality
         );
       };
       img.onerror = reject;
@@ -157,21 +190,35 @@ IMPORTANT: Order colors by relevance within each palette. For the first 8 colors
 
 /**
  * Generates a visualized image with the new color applied.
+ * OPTIMIZED: Reuses surface analysis data to accelerate processing and improve accuracy
  */
-export const visualizeColor = async (base64Image: string, colorName: string, colorHex: string): Promise<string> => {
+export const visualizeColor = async (
+  base64Image: string, 
+  colorName: string, 
+  colorHex: string,
+  analysisContext?: AnalysisResult
+): Promise<string> => {
   try {
     // Normalize hex value for consistent processing
     const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
     const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
     
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: {
-      parts: [
-        { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: `Paint ALL wall surfaces in this image with the color ${colorName} (${normalizedHexWithHash}).
-
-CRITICAL: Paint EVERY wall surface, regardless of its current color or whether it appears to be an accent.
+    // Build enhanced prompt with analysis context
+    let enhancedPrompt = `Paint ALL wall surfaces in this image with the color ${colorName} (${normalizedHexWithHash}).\n\n`;
+    
+    // Add analysis context if available to speed up processing
+    if (analysisContext) {
+      enhancedPrompt += `CONTEXT FROM PREVIOUS ANALYSIS:\n`;
+      enhancedPrompt += `- Surface Type: ${analysisContext.surfaceType}\n`;
+      enhancedPrompt += `- Condition: ${analysisContext.condition}\n`;
+      enhancedPrompt += `- Description: ${analysisContext.description}\n\n`;
+      enhancedPrompt += `Use this context to quickly identify wall surfaces. The analysis has already identified:\n`;
+      enhancedPrompt += `- The wall material and structure\n`;
+      enhancedPrompt += `- Surface conditions and features\n`;
+      enhancedPrompt += `- Interior/exterior space characteristics\n\n`;
+    }
+    
+    enhancedPrompt += `CRITICAL: Paint EVERY wall surface, regardless of its current color or whether it appears to be an accent.
 
 WALLS TO PAINT (include ALL of these):
 1. Main walls (front, back, side walls)
@@ -201,11 +248,23 @@ PRESERVE (do NOT paint):
 - Stone, brick, or wood cladding (only painted surfaces are walls)
 - Metal elements (unless they're painted walls)
 
-The output must show ALL painted wall surfaces uniformly painted ${normalizedHexWithHash}.` }
+The output must show ALL painted wall surfaces uniformly painted ${normalizedHexWithHash}.`;
+    
+    // Enhanced system instruction with analysis context
+    const systemInstruction = analysisContext
+      ? `You are a paint visualization tool. Previous analysis has identified this as ${analysisContext.surfaceType} with ${analysisContext.condition} condition. Use this context to quickly identify wall surfaces without re-analyzing the structure. When asked to paint walls a color, you MUST identify and paint EVERY painted wall surface in the image, including accent walls, colored sections, columns, recesses, and trim. Do not skip walls because they're currently a different color. Do not preserve accent colors. All painted wall surfaces must be painted uniformly with the specified color. The output must be visibly different - all walls must show the new color clearly.`
+      : "You are a paint visualization tool. When asked to paint walls a color, you MUST identify and paint EVERY painted wall surface in the image, including accent walls, colored sections, columns, recesses, and trim. Do not skip walls because they're currently a different color. Do not preserve accent colors. All painted wall surfaces must be painted uniformly with the specified color. The output must be visibly different - all walls must show the new color clearly.";
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+          { text: enhancedPrompt }
         ]
       },
       config: {
-        systemInstruction: "You are a paint visualization tool. When asked to paint walls a color, you MUST identify and paint EVERY painted wall surface in the image, including accent walls, colored sections, columns, recesses, and trim. Do not skip walls because they're currently a different color. Do not preserve accent colors. All painted wall surfaces must be painted uniformly with the specified color. The output must be visibly different - all walls must show the new color clearly."
+        systemInstruction
       }
     });
 

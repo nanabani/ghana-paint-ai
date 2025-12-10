@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnalysisResult } from '../types';
 import { Paintbrush, Check, Loader2, Maximize2, X, Sparkles, Building2, Info, ChevronDown, Palette, Plus } from 'lucide-react';
 import ColorModal from './ColorModal';
@@ -47,7 +47,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
     }
   }, [visualizedImage, selectedColor, isVisualizing]);
 
-  const handleColorSelect = (color: {name: string, hex: string}) => {
+  // OPTIMIZATION Step 2.4: Memoize color selection handler
+  const handleColorSelect = useCallback((color: {name: string, hex: string}) => {
     setSelectedColor(color);
     // Clear visualized image immediately for instant feedback
     setActiveTab('original');
@@ -59,18 +60,23 @@ const Visualizer: React.FC<VisualizerProps> = ({
         onScrollToVisualizer();
       }, 50);
     }
-  };
+  }, [onVisualize, onScrollToVisualizer]);
 
-  const handleGenerateClick = () => {
+  // OPTIMIZATION Step 2.4: Memoize generate handler
+  const handleGenerateClick = useCallback(() => {
     if (selectedColor && area > 0) {
       onGenerateList(selectedColor.name, area);
     }
-  };
+  }, [selectedColor, area, onGenerateList]);
 
-  const currentImage = activeTab === 'visualized' && visualizedImage ? visualizedImage : originalImage;
+  // OPTIMIZATION Step 2.4: Memoize current image computation
+  const currentImage = useMemo(() => {
+    return activeTab === 'visualized' && visualizedImage ? visualizedImage : originalImage;
+  }, [activeTab, visualizedImage, originalImage]);
 
   // Normalize hex color to ensure it has # prefix and is valid
-  const normalizeHex = (hex: string | undefined | null): string => {
+  // OPTIMIZATION: Memoized to avoid recreating on every render
+  const normalizeHex = useCallback((hex: string | undefined | null): string => {
     if (!hex || typeof hex !== 'string') return '#CCCCCC'; // Fallback to light gray if invalid
     
     // Remove any whitespace and convert to uppercase
@@ -98,9 +104,10 @@ const Visualizer: React.FC<VisualizerProps> = ({
     }
     
     return '#' + normalized;
-  };
+  }, []);
 
-  const isLightColor = (hex: string) => {
+  // OPTIMIZATION: Memoized color lightness check
+  const isLightColor = useCallback((hex: string) => {
     const normalized = normalizeHex(hex);
     const h = normalized.replace('#', '');
     if (h.length !== 6) return false;
@@ -109,7 +116,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
     const b = parseInt(h.substring(4, 6), 16);
     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
     return yiq >= 180;
-  };
+  }, [normalizeHex]);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-4 sm:py-8 md:px-8">
