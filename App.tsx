@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AppState, AnalysisResult, ShoppingList as ShoppingListType } from './types';
 import Hero from './components/Hero';
 import UploadSection from './components/UploadSection';
@@ -25,9 +25,11 @@ const App: React.FC = () => {
   const MAX_VISUALIZATIONS = 5; // Rate limit per session
   const currentRequestRef = useRef<string | null>(null);
   const loadingRequestRef = useRef<string | null>(null);
+  const visualizerRef = useRef<HTMLDivElement | null>(null);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const hasScrolledToVisualizer = useRef(false);
 
   const handleStart = () => {
     const uploadElement = document.getElementById('upload-area');
@@ -237,6 +239,21 @@ const App: React.FC = () => {
     }
   };
 
+  // Scroll to top when transitioning to visualizer (no animation on initial load)
+  useEffect(() => {
+    if (appState === AppState.VISUALIZING && !hasScrolledToVisualizer.current) {
+      // Scroll to top immediately without animation
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        hasScrolledToVisualizer.current = true;
+      });
+    } else if (appState === AppState.IDLE) {
+      // Reset flag when going back to idle
+      hasScrolledToVisualizer.current = false;
+    }
+  }, [appState]);
+
   const handleReset = () => {
     setAppState(AppState.IDLE);
     setOriginalImage(null);
@@ -251,6 +268,7 @@ const App: React.FC = () => {
     setPendingFile(null);
     currentRequestRef.current = null; // Cancel any pending requests
     loadingRequestRef.current = null;
+    hasScrolledToVisualizer.current = false;
   };
 
   return (
@@ -343,15 +361,20 @@ const App: React.FC = () => {
                 />
               </div>
             )}
-            <Visualizer 
-              originalImage={originalImage}
-              visualizedImage={visualizedImage}
-              analysis={analysisResult}
-              isVisualizing={loading}
-              loadingMessage={loadingMessage}
-              onVisualize={handleVisualize}
-              onGenerateList={handleGenerateList}
-            />
+            <div ref={visualizerRef}>
+              <Visualizer 
+                originalImage={originalImage}
+                visualizedImage={visualizedImage}
+                analysis={analysisResult}
+                isVisualizing={loading}
+                loadingMessage={loadingMessage}
+                onVisualize={handleVisualize}
+                onGenerateList={handleGenerateList}
+                onScrollToVisualizer={() => {
+                  visualizerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              />
+            </div>
           </>
         )}
 

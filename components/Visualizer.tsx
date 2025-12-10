@@ -11,6 +11,7 @@ interface VisualizerProps {
   loadingMessage?: string;
   onVisualize: (colorName: string, colorHex: string) => void;
   onGenerateList: (color: string, area: number) => void;
+  onScrollToVisualizer?: () => void;
 }
 
 const Visualizer: React.FC<VisualizerProps> = ({ 
@@ -20,7 +21,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
   isVisualizing,
   loadingMessage,
   onVisualize,
-  onGenerateList 
+  onGenerateList,
+  onScrollToVisualizer
 }) => {
   const [selectedColor, setSelectedColor] = useState<{name: string, hex: string} | null>(null);
   const [area, setArea] = useState<number>(0);
@@ -53,6 +55,13 @@ const Visualizer: React.FC<VisualizerProps> = ({
     // Collapse palette on mobile after selection
     if (window.innerWidth < 1024) {
       setIsPaletteExpanded(false);
+    }
+    // Smoothly scroll to visualizer to show the updated preview
+    if (onScrollToVisualizer) {
+      // Small delay to ensure state updates are processed
+      setTimeout(() => {
+        onScrollToVisualizer();
+      }, 50);
     }
   };
 
