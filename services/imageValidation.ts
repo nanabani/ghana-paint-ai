@@ -170,8 +170,9 @@ const checkLighting = (canvas: HTMLCanvasElement): { check: ValidationCheck; bri
 /**
  * Detect blur using Laplacian variance (edge detection)
  * Higher variance = sharper image, lower variance = blurrier
+ * Adjusted for low-light conditions common in Ghanaian homes
  */
-const detectBlur = (canvas: HTMLCanvasElement): { check: ValidationCheck; variance: number } => {
+const detectBlur = (canvas: HTMLCanvasElement, brightness: number): { check: ValidationCheck; variance: number } => {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) {
     return {
@@ -249,15 +250,31 @@ const detectBlur = (canvas: HTMLCanvasElement): { check: ValidationCheck; varian
 
   let check: ValidationCheck = { isValid: true };
 
-  // More lenient thresholds for phone compatibility
-  // Different phones have different image processing, noise reduction, and compression
-  if (variance < 30) {
+  // Brightness-aware blur thresholds
+  // In low-light conditions, edge detection naturally produces lower variance
+  // Adjust thresholds based on image brightness to avoid false positives
+  let blurErrorThreshold = 30;   // Default threshold
+  let blurWarningThreshold = 60; // Default threshold
+
+  if (brightness < 50) {
+    // Low-light conditions: be more lenient
+    // Reduce thresholds by 40-50% for dark images
+    blurErrorThreshold = 15;   // Much more lenient for dark images
+    blurWarningThreshold = 35; // More lenient warning threshold
+  } else if (brightness < 80) {
+    // Medium-light conditions: slightly more lenient
+    blurErrorThreshold = 20;
+    blurWarningThreshold = 45;
+  }
+
+  // Apply adjusted thresholds
+  if (variance < blurErrorThreshold) {
     check = {
       isValid: false,
       error: 'Image is too blurry. Please take a clearer photo.',
       tip: 'Hold camera steady, tap to focus, ensure good lighting, and avoid camera shake.'
     };
-  } else if (variance < 60) {
+  } else if (variance < blurWarningThreshold) {
     check = {
       isValid: true,
       warning: 'Image may be slightly blurry. For best results, use a sharper photo.',
@@ -404,7 +421,7 @@ export const validateImage = async (file: File): Promise<ValidationResult> => {
     const resolutionCheck = validateResolution(file, img);
     const aspectRatioCheck = checkAspectRatio(img.width, img.height);
     const lightingResult = checkLighting(canvas);
-    const blurResult = detectBlur(canvas);
+    const blurResult = detectBlur(canvas, lightingResult.brightness);
     const wallCheck = checkWallVisibility(canvas);
 
     // Collect errors and warnings
