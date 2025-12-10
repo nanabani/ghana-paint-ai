@@ -254,7 +254,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-paper font-sans">
+    <div className="min-h-[100dvh] flex flex-col bg-paper font-sans">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-paper/80 backdrop-blur-xl border-b border-stone-100 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
@@ -267,6 +267,8 @@ const App: React.FC = () => {
             <img 
               src="/logo.png" 
               alt="Huey Logo" 
+              loading="lazy"
+              decoding="async"
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-transform group-hover:scale-105 object-contain"
             />
             <span className="font-bold text-base sm:text-lg tracking-tight text-ink">
@@ -278,7 +280,7 @@ const App: React.FC = () => {
           {appState !== AppState.IDLE && (
             <button 
               onClick={handleReset}
-              className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 text-sm font-semibold bg-ink text-white rounded-xl hover:bg-ink/90 transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 text-sm font-semibold bg-ink text-white rounded-xl hover:bg-ink/90 transition-all shadow-sm active:scale-95 touch-manipulation"
               aria-label="Start a new project"
             >
               <Plus className="w-4 h-4" />

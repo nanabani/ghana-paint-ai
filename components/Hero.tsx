@@ -7,7 +7,7 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ onStart }) => {
   return (
-    <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden bg-paper">
+    <section className="relative min-h-[90dvh] flex flex-col items-center justify-center overflow-hidden bg-paper">
       {/* Atmospheric background */}
       <div className="absolute inset-0 bg-mesh pointer-events-none" />
       
@@ -50,7 +50,7 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
         <div className="animate-reveal-up delay-3 flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
             onClick={onStart}
-            className="group relative inline-flex items-center gap-3 px-8 py-4 text-lg font-semibold text-white transition-all duration-300 bg-ink rounded-full hover:bg-ink/90 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:translate-y-0"
+            className="group relative inline-flex items-center gap-3 px-8 py-4 text-lg font-semibold text-white transition-all duration-300 bg-ink rounded-full hover:bg-ink/90 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:translate-y-0 touch-manipulation"
             tabIndex={0}
             aria-label="Start your project"
           >

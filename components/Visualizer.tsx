@@ -116,7 +116,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
         >
           <button 
             onClick={() => setShowFullScreen(false)}
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 bg-white/10 hover:bg-white/20 text-white p-2.5 sm:p-3 rounded-full backdrop-blur-sm transition-all"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 bg-white/10 hover:bg-white/20 text-white p-2.5 sm:p-3 rounded-full backdrop-blur-sm transition-all touch-manipulation min-w-[44px] min-h-[44px]"
             aria-label="Close fullscreen view"
           >
             <X className="w-5 h-5" />
@@ -129,6 +129,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
             <img 
               src={currentImage} 
               alt="Full screen view" 
+              loading="lazy"
+              decoding="async"
               className="max-w-full max-h-full object-contain rounded-xl sm:rounded-2xl shadow-2xl"
             />
           </div>
@@ -144,7 +146,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 onClick={() => setActiveTab(tab)}
                 disabled={tab === 'visualized' && !visualizedImage}
                 className={`
-                  px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all capitalize
+                  px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm font-medium transition-all capitalize touch-manipulation
                   ${activeTab === tab 
                     ? 'bg-white text-ink shadow-lg' 
                     : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -170,6 +172,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
             <img 
               src={currentImage} 
               alt="Room view" 
+              loading="lazy"
+              decoding="async"
               className={`
                 w-full h-full object-cover transition-all duration-500
                 ${isVisualizing ? 'scale-[1.02] opacity-60 blur-sm' : ''}
@@ -185,7 +189,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 e.stopPropagation();
                 setShowFullScreen(true);
               }}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-ink/40 hover:bg-ink/60 text-white backdrop-blur-md p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all sm:opacity-0 sm:group-hover:opacity-100"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-ink/40 hover:bg-ink/60 text-white backdrop-blur-md p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all sm:opacity-0 sm:group-hover:opacity-100 touch-manipulation"
               aria-label="View full screen"
             >
               <Maximize2 className="w-4 h-4" />
@@ -202,7 +206,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                   onClick={() => setActiveTab(tab)}
                   disabled={tab === 'visualized' && !visualizedImage}
                   className={`
-                    px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all capitalize
+                    px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all capitalize touch-manipulation
                     ${activeTab === tab 
                       ? 'bg-white text-ink shadow-md' 
                       : 'text-white/80 hover:text-white hover:bg-white/10'
@@ -275,12 +279,12 @@ const Visualizer: React.FC<VisualizerProps> = ({
           {/* Collapsible Color Palette Card */}
           <div className="bg-paper-elevated rounded-2xl sm:rounded-3xl shadow-sm border border-stone-100 overflow-hidden animate-reveal-up delay-2">
             {/* Collapsible Header */}
-            <button
-              onClick={() => setIsPaletteExpanded(!isPaletteExpanded)}
-              className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-stone-50/50 transition-colors lg:cursor-default"
-              aria-expanded={isPaletteExpanded}
-              aria-controls="color-palette-content"
-            >
+                <button
+                  onClick={() => setIsPaletteExpanded(!isPaletteExpanded)}
+                  className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-stone-50/50 transition-colors lg:cursor-default touch-manipulation"
+                  aria-expanded={isPaletteExpanded}
+                  aria-controls="color-palette-content"
+                >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-accent-soft/50 flex items-center justify-center">
                   <Palette className="w-5 h-5 text-accent" />
@@ -355,13 +359,13 @@ const Visualizer: React.FC<VisualizerProps> = ({
                               <button
                                 key={cIdx}
                                 onClick={() => handleColorSelect({ name: color.name, hex: normalizedHex })}
-                                className="flex flex-col items-center group/item cursor-pointer w-12 sm:w-14"
+                                className="flex flex-col items-center group/item cursor-pointer w-12 sm:w-14 touch-manipulation"
                                 aria-label={`Select color ${color.name}`}
                               >
                                 <div
                                   className={`
-                                    relative w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all duration-200 mb-1.5 sm:mb-2 
-                                    border border-ink/5 shadow-sm
+                                    relative w-12 h-12 sm:w-11 sm:h-11 rounded-full transition-all duration-200 mb-1.5 sm:mb-2 
+                                    border border-ink/5 shadow-sm touch-manipulation
                                     ${selectedColor?.name === color.name 
                                       ? 'ring-2 ring-offset-2 ring-accent scale-110 shadow-md' 
                                       : 'active:scale-95'
@@ -389,10 +393,10 @@ const Visualizer: React.FC<VisualizerProps> = ({
                           {palette.colors.length > INITIAL_COLORS_TO_SHOW && (
                             <button
                               onClick={() => setOpenModalPalette(idx)}
-                              className="flex flex-col items-center justify-center cursor-pointer w-12 sm:w-14 group/more"
+                              className="flex flex-col items-center justify-center cursor-pointer w-12 sm:w-14 group/more touch-manipulation"
                               aria-label={`View all ${palette.colors.length} colors`}
                             >
-                              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-dashed border-ink/20 group-hover/more:border-accent group-hover/more:bg-accent-soft/20 flex items-center justify-center transition-all duration-200 mb-1.5 sm:mb-2 group-active/more:scale-95">
+                              <div className="relative w-12 h-12 sm:w-11 sm:h-11 rounded-full border-2 border-dashed border-ink/20 group-hover/more:border-accent group-hover/more:bg-accent-soft/20 flex items-center justify-center transition-all duration-200 mb-1.5 sm:mb-2 group-active/more:scale-95">
                                 <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-ink-subtle group-hover/more:text-accent transition-colors" />
                               </div>
                               <span className="text-[9px] sm:text-[10px] font-medium text-center leading-tight text-ink-subtle group-hover/more:text-accent transition-colors">
@@ -469,7 +473,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                   className="
                     w-full py-3 sm:py-4 bg-accent hover:bg-accent-hover text-white rounded-lg sm:rounded-xl 
                     font-semibold text-sm sm:text-base shadow-lg disabled:opacity-40 disabled:cursor-not-allowed 
-                    transition-all active:scale-[0.98]
+                    transition-all active:scale-[0.98] touch-manipulation
                   "
                 >
                   Get Materials & Pricing
