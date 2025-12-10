@@ -61,25 +61,31 @@ const App: React.FC = () => {
       setLoading(true);
       
       // OPTIMIZATION Step 1.3: Precompute hash during compression
-      setLoadingMessage('Preparing for analysis...');
+      setLoadingMessage('Preparing image...');
       const hash = await ImageCache.generateImageHash(compressedBase64);
       setImageHash(hash); // Store precomputed hash in state
 
       // PHASE 2.2: Use smaller image for analysis (1200x1200) to reduce token costs
       // Keep full size for visualization which needs detail
-      setLoadingMessage('Optimizing image for analysis...');
+      setLoadingMessage('Optimizing for analysis...');
       const analysisImage = await compressImage(file, 1200, 1200, 0.75);
 
       // Check cache
-      setLoadingMessage('Checking for previous analysis...');
+      setLoadingMessage('Checking our memory...');
       const cacheKey = `analysis_${hash}`;
       
-      // Analyze (with cache check)
-      setLoadingMessage('Analyzing space architecture and lighting...');
+      // Analyze (with cache check) - Progressive humorous messages
+      setLoadingMessage('Analyzing surfaces... judging lighting quietly.');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
-        setLoadingMessage('Identifying surfaces and materials...');
+        setLoadingMessage('Detecting textures... even the hidden ones.');
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        setLoadingMessage('Checking edges and corners... hold on.');
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
         const result = await analyzeImageForPaint(analysisImage, compressedBase64);
-        setLoadingMessage('Generating color palette recommendations...');
+        
+        setLoadingMessage('Curating colors... your walls will thank you.');
         return result;
       });
       
@@ -187,14 +193,24 @@ const App: React.FC = () => {
       // Using normalized hex ensures consistent cache keys regardless of input format
       const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
       
-      // Check cache first
+      // Check cache first - Progressive humorous messages
       const cached = await ImageCache.getOrSet(cacheKey, async () => {
         // Verify this is still the current request
         if (currentRequestRef.current !== requestId) {
           throw new Error('Request cancelled');
         }
         
-        setLoadingMessage('Applying paint color to walls...');
+        setLoadingMessage('Preparing paint bucket...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        if (currentRequestRef.current !== requestId) throw new Error('Request cancelled');
+        
+        setLoadingMessage('Finding all walls... no wall left behind.');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        if (currentRequestRef.current !== requestId) throw new Error('Request cancelled');
+        
+        setLoadingMessage('Painting your walls... no spills.');
         // OPTIMIZATION: Pass analysis context to speed up visualization (20-40% faster)
         const result = await visualizeColor(
           base64Raw, 
@@ -208,7 +224,12 @@ const App: React.FC = () => {
           throw new Error('Request cancelled');
         }
         
-        setLoadingMessage('Rendering realistic lighting and shadows...');
+        setLoadingMessage('Rendering your new look... landlord may panic.');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        if (currentRequestRef.current !== requestId) throw new Error('Request cancelled');
+        
+        setLoadingMessage('AI rolling the brush like a pro.');
         return result;
       });
       
