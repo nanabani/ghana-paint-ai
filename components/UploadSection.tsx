@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { Upload, Image as ImageIcon, Camera, Loader2 } from 'lucide-react';
 import CameraCapture from './CameraCapture';
+import { ShimmeringText } from './ui/shimmering-text';
 
 interface UploadSectionProps {
   onImageSelected: (file: File) => void;
@@ -128,7 +129,13 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, isAnalyz
                 </div>
             </div>
             <div className="text-center">
-                <p className="text-xl font-semibold text-ink mb-2">Analyzing your space</p>
+                <p className="text-xl font-semibold mb-2">
+                  <ShimmeringText 
+                    text="Analyzing your space"
+                    color="text-ink"
+                    shimmerColor="rgba(194, 65, 12, 0.6)"
+                  />
+                </p>
                 <p className="text-ink-subtle text-sm">Detecting walls, textures & lighting conditions...</p>
             </div>
           </div>

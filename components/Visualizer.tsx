@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnalysisResult } from '../types';
 import { Paintbrush, Check, Loader2, Maximize2, X, Sparkles, Building2, Info, ChevronDown, Palette, Plus } from 'lucide-react';
 import ColorModal from './ColorModal';
+import { ShimmeringText } from './ui/shimmering-text';
 
 interface VisualizerProps {
   originalImage: string;
@@ -238,8 +239,13 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 <div className="bg-paper-elevated px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-3 shadow-2xl border border-stone-100">
                   <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 text-accent animate-spin flex-shrink-0" />
                   <div>
-                    <p className="font-semibold text-ink text-sm sm:text-base">
-                      {loadingMessage || 'Painting walls...'}
+                    <p className="font-semibold text-sm sm:text-base">
+                      <ShimmeringText 
+                        text={loadingMessage || 'Painting walls...'}
+                        color="text-ink"
+                        shimmerColor="rgba(194, 65, 12, 0.6)"
+                        className="block"
+                      />
                     </p>
                     {selectedColor && (
                       <p className="text-xs sm:text-sm text-ink-subtle mt-0.5">
