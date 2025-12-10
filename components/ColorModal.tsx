@@ -57,6 +57,14 @@ const ColorModal: React.FC<ColorModalProps> = ({
     return brightness > 155;
   };
 
+  // Helper function to check if two colors are equal (both name and hex must match)
+  const isColorEqual = (color1: { name: string; hex: string } | null, color2: { name: string; hex: string }): boolean => {
+    if (!color1) return false;
+    const hex1 = normalizeHex(color1.hex).toLowerCase();
+    const hex2 = normalizeHex(color2.hex).toLowerCase();
+    return color1.name === color2.name && hex1 === hex2;
+  };
+
   // Filter colors based on search query
   const filteredColors = useMemo(() => {
     if (!searchQuery.trim()) return palette.colors;
@@ -143,7 +151,7 @@ const ColorModal: React.FC<ColorModalProps> = ({
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
                 {filteredColors.map((color, idx) => {
                   const normalizedHex = normalizeHex(color.hex);
-                  const isSelected = selectedColor?.name === color.name;
+                  const isSelected = isColorEqual(selectedColor, { name: color.name, hex: normalizedHex });
                   
                   return (
                     <button

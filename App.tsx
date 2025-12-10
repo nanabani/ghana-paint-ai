@@ -6,6 +6,9 @@ import Visualizer from './components/Visualizer';
 import ShoppingList from './components/ShoppingList';
 import { analyzeImageForPaint, visualizeColor, generateShoppingList, compressImage } from './services/gemini';
 import { ImageCache } from './services/cache';
+import { validateImage, ValidationResult } from './services/imageValidation';
+import ImageValidationModal from './components/ImageValidationModal';
+import ImageValidationBanner from './components/ImageValidationBanner';
 import { Loader2, Plus } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -21,6 +24,10 @@ const App: React.FC = () => {
   const [visualizationCount, setVisualizationCount] = useState(0);
   const MAX_VISUALIZATIONS = 5; // Rate limit per session
   const currentRequestRef = useRef<string | null>(null);
+  const loadingRequestRef = useRef<string | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const handleStart = () => {
     const uploadElement = document.getElementById('upload-area');
@@ -29,11 +36,12 @@ const App: React.FC = () => {
     }
   };
 
-  const handleImageSelected = async (file: File) => {
+  const processImage = async (file: File) => {
     setError(null);
     setAnalysisResult(null);
     setVisualizationCount(0);
     setLoadingMessage('');
+    setValidationResult(null);
     // CRITICAL FIX: Clear previous visualization and cancel any pending requests
     setVisualizedImage(null);
     currentRequestRef.current = null;
@@ -75,6 +83,56 @@ const App: React.FC = () => {
       setLoadingMessage('');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageSelected = async (file: File) => {
+    // Step 1: Validate image quality
+    setLoadingMessage('Checking photo quality...');
+    setLoading(true);
+    
+    try {
+      const validation = await validateImage(file);
+      setValidationResult(validation);
+      setLoading(false);
+      setLoadingMessage('');
+
+      // Step 2: Handle validation results
+      if (!validation.isValid) {
+        // Show error modal - blocking
+        setPendingFile(file);
+        setShowValidationModal(true);
+        return;
+      }
+
+      // Step 3: If warnings, show banner but proceed
+      if (validation.warnings.length > 0) {
+        // Warnings are non-blocking, proceed with processing
+        await processImage(file);
+      } else {
+        // No issues, proceed directly
+        await processImage(file);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError('Failed to validate image. Please try again.');
+      setLoading(false);
+      setLoadingMessage('');
+    }
+  };
+
+  const handleRetakePhoto = () => {
+    setShowValidationModal(false);
+    setPendingFile(null);
+    setValidationResult(null);
+    setAppState(AppState.IDLE);
+  };
+
+  const handleTryAnyway = async () => {
+    setShowValidationModal(false);
+    if (pendingFile) {
+      await processImage(pendingFile);
+      setPendingFile(null);
     }
   };
 
@@ -188,7 +246,11 @@ const App: React.FC = () => {
     setError(null);
     setLoadingMessage('');
     setVisualizationCount(0);
+    setValidationResult(null);
+    setShowValidationModal(false);
+    setPendingFile(null);
     currentRequestRef.current = null; // Cancel any pending requests
+    loadingRequestRef.current = null;
   };
 
   return (
@@ -268,14 +330,36 @@ const App: React.FC = () => {
 
         {/* Visualizing State */}
         {appState === AppState.VISUALIZING && originalImage && (
-          <Visualizer 
-            originalImage={originalImage}
-            visualizedImage={visualizedImage}
-            analysis={analysisResult}
-            isVisualizing={loading}
-            loadingMessage={loadingMessage}
-            onVisualize={handleVisualize}
-            onGenerateList={handleGenerateList}
+          <>
+            {/* Validation Warning Banner */}
+            {validationResult && validationResult.warnings.length > 0 && (
+              <div className="max-w-6xl mx-auto px-4 pt-6">
+                <ImageValidationBanner
+                  warnings={validationResult.warnings}
+                  onDismiss={() => setValidationResult(null)}
+                  onRetake={handleReset}
+                />
+              </div>
+            )}
+            <Visualizer 
+              originalImage={originalImage}
+              visualizedImage={visualizedImage}
+              analysis={analysisResult}
+              isVisualizing={loading}
+              loadingMessage={loadingMessage}
+              onVisualize={handleVisualize}
+              onGenerateList={handleGenerateList}
+            />
+          </>
+        )}
+
+        {/* Validation Error Modal */}
+        {showValidationModal && validationResult && (
+          <ImageValidationModal
+            validation={validationResult}
+            onRetake={handleRetakePhoto}
+            onTryAnyway={handleTryAnyway}
+            onClose={() => setShowValidationModal(false)}
           />
         )}
 
