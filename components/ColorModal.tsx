@@ -102,12 +102,12 @@ const ColorModal: React.FC<ColorModalProps> = ({
 
       {/* Modal */}
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 safe-insets"
         onKeyDown={handleKeyDown}
         tabIndex={-1}
       >
         <div
-          className="bg-paper rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-reveal-up"
+          className="bg-paper rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] flex flex-col animate-reveal-up"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

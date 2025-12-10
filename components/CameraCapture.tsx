@@ -138,9 +138,9 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ isOpen, onClose, onCaptur
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/95 flex flex-col animate-reveal">
+    <div className="fixed inset-0 z-50 bg-ink/95 flex flex-col animate-reveal safe-insets">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 text-white">
+      <div className="flex items-center justify-between p-4 text-white safe-top">
         <button
           onClick={handleClose}
           className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors touch-manipulation"
@@ -208,7 +208,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ isOpen, onClose, onCaptur
 
       {/* Capture Button */}
       {!error && (
-        <div className="p-8 flex items-center justify-center">
+        <div className="p-8 flex items-center justify-center safe-bottom">
           <button
             onClick={handleCapture}
             disabled={isLoading}

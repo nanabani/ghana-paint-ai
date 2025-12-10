@@ -111,7 +111,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
       {/* Full Screen Modal */}
       {showFullScreen && (
         <div 
-          className="fixed inset-0 z-[60] bg-ink/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-reveal" 
+          className="fixed inset-0 z-[60] bg-ink/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-reveal safe-insets" 
           onClick={() => setShowFullScreen(false)}
         >
           <button 
@@ -123,7 +123,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
           </button>
           
           <div 
-            className="flex-1 w-full flex items-center justify-center min-h-0 mb-4 sm:mb-6" 
+            className="flex-1 w-full flex items-center justify-center min-h-0 mb-4 sm:mb-6 safe-left safe-right" 
             onClick={(e) => e.stopPropagation()}
           >
             <img 
@@ -137,7 +137,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
 
           {/* Modal Tab Controls */}
           <div 
-            className="flex bg-white/10 backdrop-blur-md p-1 rounded-full border border-white/10" 
+            className="flex bg-white/10 backdrop-blur-md p-1 rounded-full border border-white/10 mb-safe-bottom" 
             onClick={(e) => e.stopPropagation()}
           >
             {(['original', 'visualized'] as const).map((tab) => (
@@ -454,6 +454,16 @@ const Visualizer: React.FC<VisualizerProps> = ({
                       min="1"
                       value={area || ''}
                       onChange={(e) => setArea(Number(e.target.value))}
+                      onFocus={(e) => {
+                        // Scroll input into view when keyboard appears on mobile
+                        setTimeout(() => {
+                          e.target.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest'
+                          });
+                        }, 300); // Delay to account for keyboard animation
+                      }}
                       placeholder="Enter size"
                       disabled={!analysis}
                       className="
