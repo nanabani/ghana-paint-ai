@@ -61,29 +61,28 @@ const App: React.FC = () => {
       setLoading(true);
       
       // OPTIMIZATION Step 1.3: Precompute hash during compression
-      setLoadingMessage('Preparing...');
+      setLoadingMessage('Preparing image...');
       const hash = await ImageCache.generateImageHash(compressedBase64);
       setImageHash(hash); // Store precomputed hash in state
 
       // PHASE 2.2: Use smaller image for analysis (1200x1200) to reduce token costs
       // Keep full size for visualization which needs detail
-      setLoadingMessage('Optimizing...');
+      setLoadingMessage('Optimizing for analysis...');
       const analysisImage = await compressImage(file, 1200, 1200, 0.75);
 
       // Check cache
-      setLoadingMessage('Checking cache...');
+      setLoadingMessage('Checking our memory...');
       const cacheKey = `analysis_${hash}`;
       
       // Analyze (with cache check) - Progressive humorous messages that rotate every 2-3 seconds
-      setLoadingMessage('Analyzing surfaces...');
+      setLoadingMessage('Analyzing surfaces... judging lighting quietly.');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
         // Message rotation during API call (3-8 seconds) - keeps users engaged
-        // Optimized for mobile: max 28 chars per line
         const analysisMessages = [
           'Detecting textures...',
           'Checking edges...',
-          'Reading the walls...',
-          'Evaluating condition...',
+          'Reading walls...',
+          'Evaluating surface...',
           'Curating colors...'
         ];
         
@@ -218,13 +217,12 @@ const App: React.FC = () => {
         }
         
         // Message rotation during API call (2-6 seconds) - keeps users engaged
-        // Optimized for mobile: max 28 chars per line
         const visualizationMessages = [
           'Preparing paint...',
-          'Finding all walls...',
+          'Finding walls...',
           'Painting walls...',
-          'Rendering new look...',
-          'AI rolling brush...',
+          'Rendering look...',
+          'AI brushing...',
           'Adding shadows...'
         ];
         

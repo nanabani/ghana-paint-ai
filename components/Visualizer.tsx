@@ -235,12 +235,12 @@ const Visualizer: React.FC<VisualizerProps> = ({
 
             {/* Loading overlay with animated messages */}
             {isVisualizing && (
-              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none bg-paper/80 backdrop-blur-sm">
-                <div className="bg-paper-elevated rounded-xl sm:rounded-2xl shadow-2xl border border-stone-100 overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none bg-paper/40 backdrop-blur-[2px]">
+                <div className="bg-paper-elevated/95 backdrop-blur-md rounded-lg sm:rounded-xl shadow-xl border border-stone-200/50 overflow-hidden">
                   <AnimatedLoadingMessages
                     messages={loadingMessage ? [loadingMessage] : ['Painting walls...', 'Applying color...', 'Almost there...']}
                     interval={3000}
-                    className="min-w-[280px] sm:min-w-[320px]"
+                    className="min-w-[200px] sm:min-w-[240px]"
                     showDots={!loadingMessage}
                   />
                 </div>

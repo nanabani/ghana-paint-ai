@@ -55,7 +55,7 @@ const AnimatedLoadingMessages: React.FC<AnimatedLoadingMessagesProps> = ({
   if (displayMessages.length === 0) return null;
 
   return (
-    <div className={`flex flex-col items-center justify-center gap-4 sm:gap-6 p-4 sm:p-8 ${className}`}>
+    <div className={`flex flex-col items-center justify-center gap-3 sm:gap-4 p-3 sm:p-4 ${className}`}>
       <motion.div
         animate={{ rotate: 360 }}
         transition={{
@@ -64,26 +64,26 @@ const AnimatedLoadingMessages: React.FC<AnimatedLoadingMessagesProps> = ({
           ease: "linear"
         }}
       >
-        <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 text-accent" />
+        <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
       </motion.div>
 
-      <div className="relative h-12 sm:h-16 flex items-center justify-center w-full max-w-md">
+      <div className="relative h-10 sm:h-12 flex items-center justify-center w-full max-w-xs sm:max-w-sm">
         <AnimatePresence mode="wait">
           <motion.div
             key={displayMessages.length === 1 ? `${messageKey}-${displayMessages[0]}` : currentIndex}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="absolute inset-0 flex items-center justify-center"
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="absolute inset-0 flex items-center justify-center px-3"
           >
-            <div className="relative">
-              <motion.h2
-                className="text-sm sm:text-base md:text-lg font-semibold text-center text-ink px-3 sm:px-4 max-w-[280px] sm:max-w-none"
+            <div className="relative w-full">
+              <motion.p
+                className="text-xs sm:text-sm font-semibold text-center text-ink whitespace-nowrap overflow-hidden text-ellipsis"
                 animate={{
                   textShadow: [
                     "0 0 0px rgba(194, 65, 12, 0)",
-                    "0 0 20px rgba(194, 65, 12, 0.3)",
+                    "0 0 12px rgba(194, 65, 12, 0.25)",
                     "0 0 0px rgba(194, 65, 12, 0)"
                   ]
                 }}
@@ -93,34 +93,11 @@ const AnimatedLoadingMessages: React.FC<AnimatedLoadingMessagesProps> = ({
                   ease: "easeInOut"
                 }}
               >
-                {displayMessages[currentIndex].split("").map((char, i) => (
-                  <motion.span
-                    key={i}
-                    className="inline-block"
-                    initial={{ opacity: 0.5 }}
-                    animate={{
-                      opacity: [0.5, 1, 0.5],
-                      textShadow: [
-                        "0 0 0px rgba(194, 65, 12, 0)",
-                        "0 0 8px rgba(194, 65, 12, 0.4)",
-                        "0 0 0px rgba(194, 65, 12, 0)"
-                      ]
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      delay: i * 0.05,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    {char === " " ? "\u00A0" : char}
-                  </motion.span>
-                ))}
-              </motion.h2>
+                {displayMessages[currentIndex]}
+              </motion.p>
 
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/20 to-transparent blur-xl"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/15 to-transparent blur-lg"
                 animate={{
                   x: ["-100%", "100%"]
                 }}
@@ -136,11 +113,11 @@ const AnimatedLoadingMessages: React.FC<AnimatedLoadingMessagesProps> = ({
       </div>
 
       {showDots && displayMessages.length > 1 && (
-        <div className="flex gap-2 mt-2 sm:mt-4">
+        <div className="flex gap-1.5 mt-1 sm:mt-2">
           {displayMessages.map((_, index) => (
             <motion.div
               key={index}
-              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
+              className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full"
               animate={{
                 scale: currentIndex === index ? 1.5 : 1,
                 backgroundColor: currentIndex === index 
