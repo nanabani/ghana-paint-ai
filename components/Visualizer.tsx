@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AnalysisResult } from '../types';
-import { Paintbrush, Check, Loader2, Maximize2, X, Sparkles, Building2, Info, ChevronDown, Palette } from 'lucide-react';
+import { Paintbrush, Check, Loader2, Maximize2, X, Sparkles, Building2, Info, ChevronDown, Palette, Plus } from 'lucide-react';
+import ColorModal from './ColorModal';
 
 interface VisualizerProps {
   originalImage: string;
@@ -26,6 +27,9 @@ const Visualizer: React.FC<VisualizerProps> = ({
   const [activeTab, setActiveTab] = useState<'original' | 'visualized'>('original');
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [isPaletteExpanded, setIsPaletteExpanded] = useState(true); // Always expanded on initial view
+  const [openModalPalette, setOpenModalPalette] = useState<number | null>(null);
+  
+  const INITIAL_COLORS_TO_SHOW = 8;
 
   // Reset state when image changes (new image uploaded)
   useEffect(() => {
@@ -344,8 +348,8 @@ const Visualizer: React.FC<VisualizerProps> = ({
                           )}
                         </div>
                         
-                        <div className="flex flex-wrap gap-3 sm:gap-4">
-                          {palette.colors.map((color, cIdx) => {
+                        <div className="flex flex-wrap gap-3 sm:gap-4 items-start">
+                          {palette.colors.slice(0, INITIAL_COLORS_TO_SHOW).map((color, cIdx) => {
                             const normalizedHex = normalizeHex(color.hex);
                             return (
                               <button
@@ -380,6 +384,22 @@ const Visualizer: React.FC<VisualizerProps> = ({
                               </button>
                             );
                           })}
+                          
+                          {/* "View All" Button */}
+                          {palette.colors.length > INITIAL_COLORS_TO_SHOW && (
+                            <button
+                              onClick={() => setOpenModalPalette(idx)}
+                              className="flex flex-col items-center justify-center cursor-pointer w-12 sm:w-14 group/more"
+                              aria-label={`View all ${palette.colors.length} colors`}
+                            >
+                              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-dashed border-ink/20 group-hover/more:border-accent group-hover/more:bg-accent-soft/20 flex items-center justify-center transition-all duration-200 mb-1.5 sm:mb-2 group-active/more:scale-95">
+                                <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-ink-subtle group-hover/more:text-accent transition-colors" />
+                              </div>
+                              <span className="text-[9px] sm:text-[10px] font-medium text-center leading-tight text-ink-subtle group-hover/more:text-accent transition-colors">
+                                +{palette.colors.length - INITIAL_COLORS_TO_SHOW}
+                              </span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -459,6 +479,17 @@ const Visualizer: React.FC<VisualizerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Color Modal */}
+      {analysis && openModalPalette !== null && (
+        <ColorModal
+          isOpen={openModalPalette !== null}
+          onClose={() => setOpenModalPalette(null)}
+          palette={analysis.palettes[openModalPalette]}
+          selectedColor={selectedColor}
+          onSelectColor={handleColorSelect}
+        />
+      )}
     </div>
   );
 };

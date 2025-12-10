@@ -110,7 +110,8 @@ export const analyzeImageForPaint = async (base64Image: string): Promise<Analysi
                   name: { type: Type.STRING, description: "Paint color name" },
                   hex: { type: Type.STRING, description: "Hex color code" }
                 }
-              }
+              },
+              description: "Colors ordered by relevance - most recommended colors first, then alternatives"
             }
           }
         }
@@ -134,19 +135,19 @@ export const analyzeImageForPaint = async (base64Image: string): Promise<Analysi
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-        { text: `Identify surface material, condition, and briefly describe the appearance of the walls and indicate if any treatments are needed. Determine if interior or exterior space. Generate 3 palettes:
+        { text: `Identify surface material, condition, and very briefly and concisely describe the appearance of the walls and always indicate if any treatments are needed before painting. Determine if interior or exterior space. Generate 3 palettes:
 1. "AI-CURATED SUGGESTION" - 3-4 colors from: ${allColorsList}
-   Include: (a) colors similar to current wall (to identify existing paint), (b) new complementary colors that match the space style.
+   Prioritize colors NOT already shown in NEUCE/AZAR sections. Focus on complementary alternatives, trendy options, or unique combinations that enhance the space differently. Include: (a) colors similar to current wall (to identify existing paint), (b) new complementary colors that match the space style.
 2. "NEUCE PAINTS" - 4-5 colors from: ${neuceColorList}
 3. "AZAR PAINTS" - 4-5 colors from: ${azarColorList}
 
-Use ONLY colors from lists above. Use exact name and hex provided.` }
+IMPORTANT: Order colors by relevance within each palette. For the first 8 colors, create a strategic mix: (1) colors closest to the current wall color in the image (for identification), and (2) other recommended colors that best suit the house/space style (for alternatives). Most recommended colors first, then alternatives. Use ONLY colors from lists above. Use exact name and hex provided.` }
       ]
     },
     config: {
       responseMimeType: 'application/json',
       responseSchema: analysisSchema,
-      systemInstruction: "Architectural consultant in Ghana. For AI-CURATED: include colors similar to current wall (for identification) and new complementary colors (for alternatives). Match space style and lighting."
+      systemInstruction: "Architectural consultant in Ghana. For AI-CURATED: prioritize colors NOT in NEUCE/AZAR sections. Focus on complementary alternatives, trendy options, or unique combinations. Include colors similar to current wall (for identification) and new complementary colors (for alternatives). Match space style and lighting. Order colors strategically: first positions should mix (1) colors closest to current wall color, and (2) best recommended colors for the space. Most relevant first."
     }
   });
 
@@ -164,7 +165,7 @@ export const visualizeColor = async (base64Image: string, colorName: string, col
       contents: {
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: `Apply ${colorName} (${colorHex}) to walls only. If interior: preserve ceiling, floor, fixtures. If exterior: preserve sky, ground, windows, doors. Maintain realistic lighting.` }
+          { text: `Apply ${colorName} (${colorHex}) to walls. If walls have multiple colors, apply uniformly to all wall surfaces unless there are clear accent sections (preserve accents if they complement the new color). If interior: preserve ceiling, floor, fixtures. If exterior: preserve sky, ground, windows, doors. Maintain realistic lighting.` }
         ]
       }
     });
