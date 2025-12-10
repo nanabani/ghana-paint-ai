@@ -160,13 +160,31 @@ IMPORTANT: Order colors by relevance within each palette. For the first 8 colors
  */
 export const visualizeColor = async (base64Image: string, colorName: string, colorHex: string): Promise<string> => {
   try {
+    // Normalize hex value for consistent processing
+    const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
+    const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
+    
+    // Log for debugging
+    console.log('🎨 Visualizing color:', { colorName, originalHex: colorHex, normalizedHex: normalizedHexWithHash });
+    
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: `Apply ${colorName} (${colorHex}) to walls. If walls have multiple colors, apply uniformly to all wall surfaces unless there are clear accent sections (preserve accents if they complement the new color). If interior: preserve ceiling, floor, fixtures. If exterior: preserve sky, ground, windows, doors. Maintain realistic lighting.` }
+          { text: `REPLACE the wall color with ${colorName} (${normalizedHexWithHash}). You MUST change the wall color to match the specified hex value ${normalizedHexWithHash}. The output image MUST be visibly different from the input - the walls must show the new color ${colorName}. 
+
+If walls have multiple colors, apply ${colorName} uniformly to all wall surfaces unless there are clear accent sections (preserve accents only if they complement the new color). 
+
+If interior: preserve ceiling, floor, fixtures. If exterior: preserve sky, ground, windows, doors. 
+
+Maintain realistic lighting and shadows. 
+
+CRITICAL: The walls in the output must be painted ${colorName} (${normalizedHexWithHash}) - do not return the original image unchanged.` }
         ]
+      },
+      config: {
+        systemInstruction: "You are an image editing AI specialized in paint visualization. When asked to change wall colors, you MUST modify the image to show the new color. Never return the original image unchanged. Always apply the specified color to the walls, ensuring the output is visibly different from the input."
       }
     });
 

@@ -147,9 +147,14 @@ const App: React.FC = () => {
       return;
     }
     
+    // Normalize hex value to ensure consistent cache keys
+    // This prevents cache misses due to hex format differences (e.g., #FF6B35 vs ff6b35 vs FF6B35)
+    const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
+    const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
+    
     // CRITICAL FIX: Include image hash in request ID to prevent collisions across different images
     const imageHash = ImageCache.generateImageHash(base64Raw);
-    const requestId = `${imageHash}_${colorHex}`;
+    const requestId = `${imageHash}_${normalizedHexWithHash}`;
     currentRequestRef.current = requestId;
     
     // INSTANT UI UPDATE: Clear previous visualization immediately
@@ -161,8 +166,18 @@ const App: React.FC = () => {
       setLoadingMessage('Checking cache...');
       setVisualizationCount(prev => prev + 1);
       
-      // Create cache key: image hash + color
-      const cacheKey = `visualization_${imageHash}_${colorHex}`;
+      // Create cache key: image hash + normalized color hex
+      // Using normalized hex ensures consistent cache keys regardless of input format
+      const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
+      
+      // Log for debugging
+      console.log('🔄 Visualize request:', { 
+        colorName, 
+        originalHex: colorHex, 
+        normalizedHex: normalizedHexWithHash,
+        cacheKey,
+        requestId 
+      });
       
       // Check cache first
       const cached = await ImageCache.getOrSet(cacheKey, async () => {
@@ -172,7 +187,8 @@ const App: React.FC = () => {
         }
         
         setLoadingMessage('Applying paint color to walls...');
-        const result = await visualizeColor(base64Raw, colorName, colorHex);
+        // Pass normalized hex to ensure consistency
+        const result = await visualizeColor(base64Raw, colorName, normalizedHexWithHash);
         
         // Verify again before returning
         if (currentRequestRef.current !== requestId) {
