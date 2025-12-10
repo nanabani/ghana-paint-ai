@@ -79,7 +79,7 @@ const AnimatedLoadingMessages: React.FC<AnimatedLoadingMessagesProps> = ({
           >
             <div className="relative">
               <motion.h2
-                className="text-base sm:text-xl md:text-2xl font-semibold text-center text-ink px-4"
+                className="text-sm sm:text-base md:text-lg font-semibold text-center text-ink px-3 sm:px-4 max-w-[280px] sm:max-w-none"
                 animate={{
                   textShadow: [
                     "0 0 0px rgba(194, 65, 12, 0)",

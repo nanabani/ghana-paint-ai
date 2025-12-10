@@ -61,29 +61,30 @@ const App: React.FC = () => {
       setLoading(true);
       
       // OPTIMIZATION Step 1.3: Precompute hash during compression
-      setLoadingMessage('Preparing image...');
+      setLoadingMessage('Preparing...');
       const hash = await ImageCache.generateImageHash(compressedBase64);
       setImageHash(hash); // Store precomputed hash in state
 
       // PHASE 2.2: Use smaller image for analysis (1200x1200) to reduce token costs
       // Keep full size for visualization which needs detail
-      setLoadingMessage('Optimizing for analysis...');
+      setLoadingMessage('Optimizing...');
       const analysisImage = await compressImage(file, 1200, 1200, 0.75);
 
       // Check cache
-      setLoadingMessage('Checking our memory...');
+      setLoadingMessage('Checking cache...');
       const cacheKey = `analysis_${hash}`;
       
       // Analyze (with cache check) - Progressive humorous messages that rotate every 2-3 seconds
-      setLoadingMessage('Analyzing surfaces... judging lighting quietly.');
+      setLoadingMessage('Analyzing surfaces...');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
         // Message rotation during API call (3-8 seconds) - keeps users engaged
+        // Optimized for mobile: max 28 chars per line
         const analysisMessages = [
-          'Detecting textures... even the hidden ones.',
-          'Checking edges and corners... hold on.',
-          'Reading the walls like a book...',
-          'Evaluating surface condition...',
-          'Curating colors... your walls will thank you.'
+          'Detecting textures...',
+          'Checking edges...',
+          'Reading the walls...',
+          'Evaluating condition...',
+          'Curating colors...'
         ];
         
         let messageIndex = 0;
@@ -97,7 +98,7 @@ const App: React.FC = () => {
         try {
           const result = await analyzeImageForPaint(analysisImage, compressedBase64);
           clearInterval(messageInterval);
-          setLoadingMessage('Finalizing analysis... almost done!');
+          setLoadingMessage('Finalizing...');
           return result;
         } catch (error) {
           clearInterval(messageInterval);
@@ -217,13 +218,14 @@ const App: React.FC = () => {
         }
         
         // Message rotation during API call (2-6 seconds) - keeps users engaged
+        // Optimized for mobile: max 28 chars per line
         const visualizationMessages = [
-          'Preparing paint bucket...',
-          'Finding all walls... no wall left behind.',
-          'Painting your walls... no spills.',
-          'Rendering your new look... landlord may panic.',
-          'AI rolling the brush like a pro.',
-          'Adding realistic shadows... magic happening.'
+          'Preparing paint...',
+          'Finding all walls...',
+          'Painting walls...',
+          'Rendering new look...',
+          'AI rolling brush...',
+          'Adding shadows...'
         ];
         
         let messageIndex = 0;
@@ -259,7 +261,7 @@ const App: React.FC = () => {
           }
           
           clearInterval(messageInterval);
-          setLoadingMessage('Finalizing visualization... almost there!');
+          setLoadingMessage('Finalizing...');
           return result;
         } catch (error) {
           clearInterval(messageInterval);
