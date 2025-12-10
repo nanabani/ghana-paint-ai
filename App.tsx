@@ -72,7 +72,7 @@ const App: React.FC = () => {
       setLoadingMessage('Checking our memory...');
       const cacheKey = `analysis_${hash}`;
       
-      setLoadingMessage('Analyzing surfaces... judging lighting quietly.');
+      setLoadingMessage('Analyzing surfaces...');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
         // Rotating messages during analysis
         const analysisMessages = [
