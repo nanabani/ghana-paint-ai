@@ -60,8 +60,41 @@ const Visualizer: React.FC<VisualizerProps> = ({
 
   const currentImage = activeTab === 'visualized' && visualizedImage ? visualizedImage : originalImage;
 
+  // Normalize hex color to ensure it has # prefix and is valid
+  const normalizeHex = (hex: string | undefined | null): string => {
+    if (!hex || typeof hex !== 'string') return '#CCCCCC'; // Fallback to light gray if invalid
+    
+    // Remove any whitespace and convert to uppercase
+    let normalized = hex.trim().toUpperCase();
+    
+    // Remove # if present (we'll add it back)
+    normalized = normalized.replace('#', '');
+    
+    // Validate hex characters (0-9, A-F)
+    if (!/^[0-9A-F]+$/.test(normalized)) {
+      console.warn('Invalid hex color:', hex);
+      return '#CCCCCC'; // Fallback
+    }
+    
+    // Handle different hex formats
+    if (normalized.length === 3) {
+      // Convert RGB to RRGGBB
+      normalized = normalized[0] + normalized[0] + normalized[1] + normalized[1] + normalized[2] + normalized[2];
+    } else if (normalized.length === 6) {
+      // Already correct format
+    } else {
+      // Invalid length, use fallback
+      console.warn('Invalid hex color length:', hex);
+      return '#CCCCCC';
+    }
+    
+    return '#' + normalized;
+  };
+
   const isLightColor = (hex: string) => {
-    const h = hex.replace('#', '');
+    const normalized = normalizeHex(hex);
+    const h = normalized.replace('#', '');
+    if (h.length !== 6) return false;
     const r = parseInt(h.substring(0, 2), 16);
     const g = parseInt(h.substring(2, 4), 16);
     const b = parseInt(h.substring(4, 6), 16);
@@ -247,7 +280,7 @@ const Visualizer: React.FC<VisualizerProps> = ({
                     <div className="flex items-center gap-2 mt-0.5">
                       <div 
                         className="w-3 h-3 rounded-full border border-ink/10" 
-                        style={{ backgroundColor: selectedColor.hex }}
+                        style={{ backgroundColor: normalizeHex(selectedColor.hex) }}
                       />
                       <span className="text-xs sm:text-sm text-accent font-medium">{selectedColor.name}</span>
                     </div>
@@ -273,6 +306,10 @@ const Visualizer: React.FC<VisualizerProps> = ({
                 {analysis ? (
                   analysis.palettes.map((palette, idx) => {
                     const isAI = palette.name.toUpperCase().includes("AI-CURATED");
+                    // Debug: Log color data to help identify issues
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log('Palette:', palette.name, 'Colors:', palette.colors);
+                    }
                     return (
                       <div 
                         key={idx} 
@@ -301,38 +338,41 @@ const Visualizer: React.FC<VisualizerProps> = ({
                         </div>
                         
                         <div className="flex flex-wrap gap-3 sm:gap-4">
-                          {palette.colors.map((color, cIdx) => (
-                            <button
-                              key={cIdx}
-                              onClick={() => handleColorSelect(color)}
-                              className="flex flex-col items-center group/item cursor-pointer w-12 sm:w-14"
-                              aria-label={`Select color ${color.name}`}
-                            >
-                              <div
-                                className={`
-                                  relative w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all duration-200 mb-1.5 sm:mb-2 
-                                  border border-ink/5 shadow-sm
-                                  ${selectedColor?.name === color.name 
-                                    ? 'ring-2 ring-offset-2 ring-accent scale-110 shadow-md' 
-                                    : 'active:scale-95'
-                                  }
-                                `}
-                                style={{ backgroundColor: color.hex }}
+                          {palette.colors.map((color, cIdx) => {
+                            const normalizedHex = normalizeHex(color.hex);
+                            return (
+                              <button
+                                key={cIdx}
+                                onClick={() => handleColorSelect({ name: color.name, hex: normalizedHex })}
+                                className="flex flex-col items-center group/item cursor-pointer w-12 sm:w-14"
+                                aria-label={`Select color ${color.name}`}
                               >
-                                {selectedColor?.name === color.name && (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <Check className={`w-4 h-4 ${isLightColor(color.hex) ? 'text-ink' : 'text-white'} drop-shadow-sm`} />
-                                  </div>
-                                )}
-                              </div>
-                              <span className={`
-                                text-[9px] sm:text-[10px] font-medium text-center leading-tight line-clamp-2
-                                ${selectedColor?.name === color.name ? 'text-accent font-semibold' : 'text-ink-subtle'}
-                              `}>
-                                {color.name}
-                              </span>
-                            </button>
-                          ))}
+                                <div
+                                  className={`
+                                    relative w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all duration-200 mb-1.5 sm:mb-2 
+                                    border border-ink/5 shadow-sm
+                                    ${selectedColor?.name === color.name 
+                                      ? 'ring-2 ring-offset-2 ring-accent scale-110 shadow-md' 
+                                      : 'active:scale-95'
+                                    }
+                                  `}
+                                  style={{ backgroundColor: normalizedHex }}
+                                >
+                                  {selectedColor?.name === color.name && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <Check className={`w-4 h-4 ${isLightColor(normalizedHex) ? 'text-ink' : 'text-white'} drop-shadow-sm`} />
+                                    </div>
+                                  )}
+                                </div>
+                                <span className={`
+                                  text-[9px] sm:text-[10px] font-medium text-center leading-tight line-clamp-2
+                                  ${selectedColor?.name === color.name ? 'text-accent font-semibold' : 'text-ink-subtle'}
+                                `}>
+                                  {color.name}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     );

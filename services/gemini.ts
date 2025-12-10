@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AnalysisResult, ShoppingList } from "../types";
+import { PAINT_COLORS, formatColorsForPrompt } from "../data/paintColors";
 
 const API_KEY = process.env.API_KEY || '';
 
@@ -116,21 +117,34 @@ export const analyzeImageForPaint = async (base64Image: string): Promise<Analysi
     }
   };
 
+  // Get real paint colors from manufacturer data
+  const neuceColors = PAINT_COLORS.neuce || [];
+  const azarColors = PAINT_COLORS.azar || [];
+  
+  // Combine all manufacturer colors for AI-CURATED SUGGESTION
+  const allManufacturerColors = [...neuceColors, ...azarColors];
+  
+  const allColorsList = formatColorsForPrompt(allManufacturerColors);
+  const neuceColorList = formatColorsForPrompt(neuceColors);
+  const azarColorList = formatColorsForPrompt(azarColors);
+
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash', // Using available model for this API version
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
         { text: `Analyze this room image. Identify: 1) Surface material (Concrete/Plaster/Wood), 2) Condition (New/Good/Peeling/Moldy). Generate 3 color palettes:
-1. "AI-CURATED SUGGESTION" - 3-4 premium colors for this architecture
-2. "NEUCE PAINTS" - Use: Peach #FFE5B4, Terracotta #E2725B, Apple Green #8DB600, Navy #000080, Magnolia #F8F4E3
-3. "AZAR PAINTS" - 4-5 common Ghanaian exterior colors` }
+1. "AI-CURATED SUGGESTION" - Select 3-4 premium colors from ALL available manufacturer colors that best match this room's architecture, lighting, and style. Available colors: ${allColorsList}
+2. "NEUCE PAINTS" - Select 4-5 colors from this Neuce list that best match the room's style and lighting: ${neuceColorList}
+3. "AZAR PAINTS" - Select 4-5 colors from this Azar list that best match the room's style and lighting: ${azarColorList}
+
+CRITICAL: ALL palettes MUST only use colors from the provided manufacturer lists above. You MUST use the exact name and hex value provided. Do NOT invent, modify, or create new color names or hex codes. Every color must come from the manufacturer lists.` }
       ]
     },
     config: {
       responseMimeType: 'application/json',
       responseSchema: analysisSchema,
-      systemInstruction: "You are a professional architectural consultant in Ghana. Be practical and aesthetic."
+      systemInstruction: "You are a professional architectural consultant in Ghana. Be practical and aesthetic. When selecting manufacturer colors, choose colors that match the room's architecture, lighting, and style."
     }
   });
 
