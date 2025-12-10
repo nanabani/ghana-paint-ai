@@ -164,11 +164,11 @@ export const visualizeColor = async (base64Image: string, colorName: string, col
     const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
     const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
     
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image',
+    contents: {
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
           { text: `Paint ALL wall surfaces in this image with the color ${colorName} (${normalizedHexWithHash}).
 
 CRITICAL: Paint EVERY wall surface, regardless of its current color or whether it appears to be an accent.
@@ -216,12 +216,12 @@ The output must show ALL painted wall surfaces uniformly painted ${normalizedHex
       throw new Error("Content was blocked for safety reasons. Try a different color.");
     }
 
-    // Extract the image from the response
-    const parts = response.candidates?.[0]?.content?.parts;
+  // Extract the image from the response
+  const parts = response.candidates?.[0]?.content?.parts;
     
-    if (parts) {
-      for (const part of parts) {
-        if (part.inlineData && part.inlineData.data) {
+  if (parts) {
+    for (const part of parts) {
+      if (part.inlineData && part.inlineData.data) {
           const result = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
           
           // Check if result is identical to input (simple string comparison)
@@ -235,8 +235,8 @@ The output must show ALL painted wall surfaces uniformly painted ${normalizedHex
           }
           
           return result;
-        }
-      }
+    }
+  }
     }
     
     console.error('No image data in response. Response structure:', {

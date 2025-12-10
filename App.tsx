@@ -9,7 +9,7 @@ import { ImageCache } from './services/cache';
 import { validateImage, ValidationResult } from './services/imageValidation';
 import ImageValidationModal from './components/ImageValidationModal';
 import ImageValidationBanner from './components/ImageValidationBanner';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, ExternalLink } from 'lucide-react';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
@@ -303,9 +303,9 @@ const App: React.FC = () => {
               alt="Huey Logo" 
               loading="lazy"
               decoding="async"
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg transition-transform group-hover:scale-105 object-contain"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg transition-transform group-hover:scale-105 object-cover object-center"
             />
-            <span className="font-bold text-base sm:text-lg tracking-tight text-ink">
+            <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-ink">
               Huey
             </span>
           </button>
@@ -419,9 +419,18 @@ const App: React.FC = () => {
           <p className="text-ink-subtle text-xs sm:text-sm">
             © {new Date().getFullYear()} Huey
           </p>
-          <p className="text-ink-subtle text-xs sm:text-sm">
-            Built for Ghanaian homeowners
-          </p>
+          <a
+            href="https://linkedin.com/in/nanabaniadu/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-xl hover:border-accent hover:shadow-md transition-all duration-200 group"
+            aria-label="Visit developer's LinkedIn profile"
+          >
+            <ExternalLink className="w-4 h-4 text-accent group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-medium text-ink group-hover:text-accent transition-colors">
+              Built by Nana Bani Adu
+            </span>
+          </a>
         </div>
       </footer>
     </div>

@@ -43,6 +43,7 @@ export default {
         'reveal-scale': 'reveal-scale 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
         'shimmer': 'shimmer 1.5s infinite',
         'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
+        'rainbow': 'rainbow 2s infinite linear',
       },
       keyframes: {
         'reveal-up': {
@@ -64,6 +65,10 @@ export default {
         'pulse-subtle': {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
+        },
+        'rainbow': {
+          '0%': { backgroundPosition: '0%' },
+          '100%': { backgroundPosition: '200%' },
         },
       },
     },

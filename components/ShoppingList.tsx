@@ -27,7 +27,7 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
         aria-label="Go back to design view"
       >
         <div className="w-10 h-10 rounded-full bg-paper-elevated border border-stone-200 flex items-center justify-center mr-3 group-hover:border-stone-300 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" />
         </div>
         <span className="font-medium">Back to Design</span>
       </button>
@@ -37,23 +37,23 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
         <div className="lg:col-span-2 space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between animate-reveal-up">
-            <div>
+             <div>
               <h1 className="text-3xl font-bold text-ink mb-1">Your Materials</h1>
               <p className="text-ink-subtle">Everything you need for a professional finish</p>
-            </div>
+             </div>
             <div className="w-14 h-14 rounded-2xl bg-accent-soft/40 flex items-center justify-center">
               <ShoppingCart className="w-6 h-6 text-accent" />
-            </div>
+             </div>
           </div>
 
           {/* Category Sections */}
           <div className="space-y-8">
             {categories.map((category, catIdx) => {
-              const items = list.items.filter(i => i.category === category);
-              if (items.length === 0) return null;
+                const items = list.items.filter(i => i.category === category);
+                if (items.length === 0) return null;
               const colors = categoryColors[category] || categoryColors.Other;
 
-              return (
+                return (
                 <section 
                   key={category} 
                   className="animate-reveal-up"
@@ -64,46 +64,46 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
                     <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
                     <h2 className="text-xs font-bold text-ink uppercase tracking-widest">{category}</h2>
                     <span className="text-xs text-ink-subtle">({items.length} items)</span>
-                  </div>
-                  
+                    </div>
+                    
                   {/* Items */}
                   <div className="bg-paper-elevated rounded-2xl border border-stone-100 overflow-hidden divide-y divide-stone-50">
-                    {items.map((item, idx) => (
+                      {items.map((item, idx) => (
                       <div 
                         key={idx} 
                         className="p-5 hover:bg-paper-warm transition-colors group"
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-start gap-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
                             <div className="mt-0.5">
                               <div className="w-5 h-5 rounded-full border-2 border-stone-200 flex items-center justify-center group-hover:border-emerald-400 group-hover:bg-emerald-400 transition-all">
                                 <Check className="w-3 h-3 text-transparent group-hover:text-white transition-colors" />
                               </div>
-                            </div>
-                            <div>
+                              </div>
+                              <div>
                               <h3 className="font-semibold text-ink leading-tight">{item.name}</h3>
                               <p className="text-sm text-ink-subtle mt-1">{item.reason}</p>
+                              </div>
                             </div>
-                          </div>
-                          
+                            
                           <div className="flex items-center justify-between sm:justify-end gap-6 ml-9 sm:ml-0">
                             <span className={`
                               px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap
                               ${colors.bg} ${colors.text}
                             `}>
-                              {item.quantity} {item.unit}
-                            </span>
+                                {item.quantity} {item.unit}
+                              </span>
                             <span className="font-bold text-ink text-lg tabular-nums">
-                              ₵{item.estimatedPriceGHS.toLocaleString()}
-                            </span>
+                                ₵{item.estimatedPriceGHS.toLocaleString()}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
                 </section>
-              );
-            })}
+                );
+              })}
           </div>
 
           {/* Total Card */}
@@ -112,19 +112,19 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
             style={{ animationDelay: '500ms' }}
           >
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div>
+            <div>
                 <p className="text-white/60 font-medium text-sm mb-1">Estimated Material Cost</p>
                 <p className="text-4xl font-bold tracking-tight">
                   ₵{list.totalMaterialCostGHS.toLocaleString()}
                 </p>
-              </div>
+            </div>
               <button 
                 className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/15 rounded-xl backdrop-blur-sm transition-colors font-medium text-sm touch-manipulation"
                 aria-label="Share this list"
               >
                 <MessageCircle className="w-4 h-4" />
                 Share List
-              </button>
+                 </button>
             </div>
           </div>
         </div>
@@ -161,21 +161,21 @@ const ShoppingList: React.FC<ShoppingListProps> = ({ list, onBack }) => {
               >
                 <Hammer className="w-4 h-4 text-accent" />
                 Book Pro Painter
-              </button>
-              
+                </button>
+                
               <button 
                 className="w-full py-4 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl font-semibold hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 touch-manipulation"
                 aria-label="Order materials via WhatsApp"
               >
                 <Phone className="w-4 h-4" />
                 WhatsApp Order
-              </button>
+                </button>
             </div>
             
             {/* Warranty note */}
             <div className="mt-6 flex items-center justify-center gap-2 text-xs text-ink-subtle font-medium bg-paper-warm py-2.5 rounded-lg">
               <Check className="w-3 h-3 text-emerald-500" />
-              30-day workmanship warranty
+                30-day workmanship warranty
             </div>
           </div>
         </div>

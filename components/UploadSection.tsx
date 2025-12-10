@@ -99,26 +99,26 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, isAnalyz
           className={`
             relative flex flex-col items-center justify-center w-full min-h-[400px] 
             rounded-4xl transition-all duration-300 overflow-hidden
-            ${dragActive 
+        ${dragActive 
               ? 'bg-accent-soft/30 border-accent scale-[1.01] shadow-xl' 
               : 'bg-paper-elevated border-stone-200 hover:border-stone-300 hover:shadow-lg'
             }
             border-2 border-dashed
             ${!isAnalyzing ? 'cursor-pointer' : 'cursor-default'}
           `}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
           onClick={handleDropzoneClick}
           role="button"
           tabIndex={0}
           aria-label="Upload an image by clicking or dragging"
           onKeyDown={handleDropzoneKeyDown}
         >
-          {isAnalyzing ? (
+        {isAnalyzing ? (
             <div className="flex flex-col items-center space-y-6 p-8">
-              <div className="relative">
+            <div className="relative">
                 <div 
                   className="absolute inset-0 rounded-full blur-xl opacity-30 animate-pulse-subtle"
                   style={{ background: 'var(--color-accent)' }}
@@ -126,41 +126,41 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, isAnalyz
                 <div className="relative w-16 h-16 rounded-full bg-accent-soft/50 flex items-center justify-center">
                   <Loader2 className="w-8 h-8 text-accent animate-spin" />
                 </div>
-              </div>
-              <div className="text-center">
+            </div>
+            <div className="text-center">
                 <p className="text-xl font-semibold text-ink mb-2">Analyzing your space</p>
                 <p className="text-ink-subtle text-sm">Detecting walls, textures & lighting conditions...</p>
-              </div>
             </div>
-          ) : (
+          </div>
+        ) : (
             <div className="flex flex-col items-center text-center p-8 w-full max-w-md">
               {/* Icon */}
               <div className="w-16 h-16 rounded-2xl bg-stone-100 flex items-center justify-center mb-8">
                 <Upload className="w-7 h-7 text-ink-muted" />
-              </div>
-              
+            </div>
+            
               {/* Text */}
               <h3 className="text-2xl font-semibold text-ink mb-2">
                 Drop your photo here
               </h3>
               <p className="text-ink-subtle mb-10 leading-relaxed">
                 or use one of the options below
-              </p>
+            </p>
 
               {/* Action buttons */}
               <div className="flex flex-col w-full gap-3">
                 <button
-                  type="button"
+                    type="button"
                   onClick={handleTakePhotoClick}
                   className="group flex items-center justify-center w-full px-6 py-4 bg-ink text-white font-semibold rounded-2xl hover:bg-ink/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 touch-manipulation"
                   aria-label="Take a photo with your camera"
                 >
                   <Camera className="w-5 h-5 mr-3" />
-                  Take Photo
+                    Take Photo
                 </button>
 
                 <button
-                  type="button"
+                    type="button"
                   onClick={handleUploadClick}
                   className="flex items-center justify-center w-full px-6 py-4 bg-paper-warm border border-stone-200 text-ink font-semibold rounded-2xl hover:bg-stone-100 hover:border-stone-300 transition-all touch-manipulation"
                   aria-label="Select an image from your gallery"
@@ -168,20 +168,20 @@ const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, isAnalyz
                   <ImageIcon className="w-5 h-5 mr-3 text-ink-subtle" />
                   Choose from Gallery
                 </button>
-              </div>
+            </div>
 
               {/* Supported formats */}
               <div className="mt-8 flex items-center gap-4 text-xs font-medium text-ink-subtle uppercase tracking-wider">
-                <span>JPG</span>
+              <span>JPG</span>
                 <span className="w-1 h-1 rounded-full bg-stone-300" />
-                <span>PNG</span>
+              <span>PNG</span>
                 <span className="w-1 h-1 rounded-full bg-stone-300" />
-                <span>WEBP</span>
-              </div>
+              <span>WEBP</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+    </div>
     </>
   );
 };

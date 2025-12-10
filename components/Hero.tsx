@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowDown, Sparkles } from 'lucide-react';
+import { RainbowButton } from './ui/rainbow-button';
 
 interface HeroProps {
   onStart: () => void;
@@ -48,15 +49,15 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
         
         {/* CTA */}
         <div className="animate-reveal-up delay-3 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
+          <RainbowButton
             onClick={onStart}
-            className="group relative inline-flex items-center gap-3 px-8 py-4 text-lg font-semibold text-white transition-all duration-300 bg-ink rounded-full hover:bg-ink/90 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:translate-y-0 touch-manipulation"
+            className="group inline-flex items-center gap-3 px-8 py-4 text-lg shadow-xl hover:shadow-2xl"
             tabIndex={0}
             aria-label="Start your project"
           >
             Start Your Project
             <ArrowDown className="w-5 h-5 transition-transform group-hover:translate-y-0.5" />
-          </button>
+          </RainbowButton>
           
           <span className="text-ink-subtle text-sm font-medium">
             Free • No signup required
