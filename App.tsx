@@ -74,19 +74,35 @@ const App: React.FC = () => {
       setLoadingMessage('Checking our memory...');
       const cacheKey = `analysis_${hash}`;
       
-      // Analyze (with cache check) - Progressive humorous messages
+      // Analyze (with cache check) - Progressive humorous messages that rotate every 2-3 seconds
       setLoadingMessage('Analyzing surfaces... judging lighting quietly.');
       const analysis = await ImageCache.getOrSet(cacheKey, async () => {
-        setLoadingMessage('Detecting textures... even the hidden ones.');
-        await new Promise(resolve => setTimeout(resolve, 400));
+        // Message rotation during API call (3-8 seconds) - keeps users engaged
+        const analysisMessages = [
+          'Detecting textures... even the hidden ones.',
+          'Checking edges and corners... hold on.',
+          'Reading the walls like a book...',
+          'Evaluating surface condition...',
+          'Curating colors... your walls will thank you.'
+        ];
         
-        setLoadingMessage('Checking edges and corners... hold on.');
-        await new Promise(resolve => setTimeout(resolve, 400));
+        let messageIndex = 0;
+        const messageInterval = setInterval(() => {
+          if (messageIndex < analysisMessages.length) {
+            setLoadingMessage(analysisMessages[messageIndex]);
+            messageIndex++;
+          }
+        }, 2500); // Change message every 2.5 seconds
         
-        const result = await analyzeImageForPaint(analysisImage, compressedBase64);
-        
-        setLoadingMessage('Curating colors... your walls will thank you.');
-        return result;
+        try {
+          const result = await analyzeImageForPaint(analysisImage, compressedBase64);
+          clearInterval(messageInterval);
+          setLoadingMessage('Finalizing analysis... almost done!');
+          return result;
+        } catch (error) {
+          clearInterval(messageInterval);
+          throw error;
+        }
       });
       
       setAnalysisResult(analysis);
@@ -193,44 +209,62 @@ const App: React.FC = () => {
       // Using normalized hex ensures consistent cache keys regardless of input format
       const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
       
-      // Check cache first - Progressive humorous messages
+      // Check cache first - Progressive humorous messages that rotate every 2-3 seconds
       const cached = await ImageCache.getOrSet(cacheKey, async () => {
         // Verify this is still the current request
         if (currentRequestRef.current !== requestId) {
           throw new Error('Request cancelled');
         }
         
-        setLoadingMessage('Preparing paint bucket...');
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Message rotation during API call (2-6 seconds) - keeps users engaged
+        const visualizationMessages = [
+          'Preparing paint bucket...',
+          'Finding all walls... no wall left behind.',
+          'Painting your walls... no spills.',
+          'Rendering your new look... landlord may panic.',
+          'AI rolling the brush like a pro.',
+          'Adding realistic shadows... magic happening.'
+        ];
         
-        if (currentRequestRef.current !== requestId) throw new Error('Request cancelled');
+        let messageIndex = 0;
+        const messageInterval = setInterval(() => {
+          if (currentRequestRef.current !== requestId) {
+            clearInterval(messageInterval);
+            return;
+          }
+          if (messageIndex < visualizationMessages.length) {
+            setLoadingMessage(visualizationMessages[messageIndex]);
+            messageIndex++;
+          } else {
+            // Loop back to keep messages rotating
+            messageIndex = 0;
+            setLoadingMessage(visualizationMessages[messageIndex]);
+            messageIndex++;
+          }
+        }, 2500); // Change message every 2.5 seconds
         
-        setLoadingMessage('Finding all walls... no wall left behind.');
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        if (currentRequestRef.current !== requestId) throw new Error('Request cancelled');
-        
-        setLoadingMessage('Painting your walls... no spills.');
-        // OPTIMIZATION: Pass analysis context to speed up visualization (20-40% faster)
-        const result = await visualizeColor(
-          base64Raw, 
-          colorName, 
-          normalizedHexWithHash,
-          analysisResult // Pass analysis data to reuse surface analysis
-        );
-        
-        // Verify again before returning
-        if (currentRequestRef.current !== requestId) {
-          throw new Error('Request cancelled');
+        try {
+          // OPTIMIZATION: Pass analysis context to speed up visualization (20-40% faster)
+          const result = await visualizeColor(
+            base64Raw, 
+            colorName, 
+            normalizedHexWithHash,
+            analysisResult // Pass analysis data to reuse surface analysis
+          );
+          
+          // Verify again before returning
+          if (currentRequestRef.current !== requestId) {
+            clearInterval(messageInterval);
+            throw new Error('Request cancelled');
+          }
+          
+          clearInterval(messageInterval);
+          setLoadingMessage('Finalizing visualization... almost there!');
+          return result;
+        } catch (error) {
+          clearInterval(messageInterval);
+          throw error;
         }
-        
-        setLoadingMessage('Rendering your new look... landlord may panic.');
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        if (currentRequestRef.current !== requestId) throw new Error('Request cancelled');
-        
-        setLoadingMessage('AI rolling the brush like a pro.');
-        return result;
       });
       
       // CRITICAL FIX: Validate request ID before using cached result
