@@ -80,21 +80,6 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
           ))}
         </div>
       </div>
-      
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-reveal delay-5">
-        <button 
-          onClick={onStart}
-          className="flex flex-col items-center gap-2 text-ink-subtle hover:text-ink transition-colors cursor-pointer"
-          aria-label="Scroll to upload section"
-          tabIndex={0}
-        >
-          <span className="text-xs font-medium uppercase tracking-widest">Upload Photo</span>
-          <div className="w-6 h-10 rounded-full border-2 border-current flex items-start justify-center p-1.5">
-            <div className="w-1 h-2 bg-current rounded-full animate-pulse-subtle" />
-          </div>
-        </button>
-      </div>
     </section>
   );
 };
