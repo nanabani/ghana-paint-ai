@@ -320,7 +320,7 @@ const App: React.FC = () => {
         loadingRequestRef.current = null;
       }
     }
-  }, [base64Raw, imageHash, visualizationCount, analysisResult]);
+  }, [base64Raw, imageHash, analysisResult]);
 
   // Create debounced version of visualization function
   const debouncedVisualize = useMemo(
