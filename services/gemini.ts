@@ -385,7 +385,7 @@ export const generateShoppingList = async (
   };
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash', // Using available model for this API version
+    model: 'gemini-1.5-flash', // Cheaper model - shopping list is text-only, doesn't need latest model
     contents: {
       parts: [
         // Removed image - we already have analysis results

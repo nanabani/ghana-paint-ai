@@ -9,7 +9,7 @@ import { ImageCache } from './services/cache';
 import { validateImage, ValidationResult } from './services/imageValidation';
 import ImageValidationModal from './components/ImageValidationModal';
 import ImageValidationBanner from './components/ImageValidationBanner';
-import { checkRateLimit, recordVisualization, recordImageUpload, isImageUploadedToday } from './services/rateLimiter';
+import { checkRateLimit, recordVisualization, recordImageUpload, isImageUploadedToday, initRateLimiter } from './services/rateLimiter';
 import { Loader2, Plus, ExternalLink } from 'lucide-react';
 import { debounce } from './lib/debounce';
 
@@ -31,6 +31,11 @@ const App: React.FC = () => {
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const hasScrolledToVisualizer = useRef(false);
+
+  // Initialize rate limiter backup check on mount
+  useEffect(() => {
+    initRateLimiter();
+  }, []);
 
   const handleStart = () => {
     const uploadElement = document.getElementById('upload-area');
@@ -79,9 +84,9 @@ const App: React.FC = () => {
         }
       }
 
-      // Use smaller image for analysis to reduce token costs
+      // Use smaller image for analysis to reduce token costs (800px is sufficient for surface detection)
       setLoadingMessage('Optimizing for analysis...');
-      const analysisImage = await compressImage(file, 1200, 1200, 0.75);
+      const analysisImage = await compressImage(file, 800, 800, 0.70);
 
       // Check cache
       setLoadingMessage('Checking our memory...');

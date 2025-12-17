@@ -1,9 +1,12 @@
 /**
  * RateLimiter - Client-side rate limiting for abuse prevention
- * Uses localStorage for persistent tracking across sessions
+ * Uses localStorage + IndexedDB backup for persistent tracking
+ * Includes browser fingerprinting to detect localStorage clearing
  */
 
 const STORAGE_KEY = 'huey_rate_limit';
+const IDB_NAME = 'huey_rl_backup';
+const IDB_STORE = 'limits';
 
 export const LIMITS = {
   DAILY_VISUALIZATIONS: 7,
@@ -91,7 +94,99 @@ function getTimeUntilHourlyReset(): number {
 }
 
 /**
- * Load rate limit data from localStorage
+ * Generate a simple browser fingerprint for backup storage key
+ * Not for tracking - just to detect localStorage clearing
+ */
+function getBrowserFingerprint(): string {
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return 'fallback';
+    
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('huey-fp', 2, 2);
+    
+    const data = canvas.toDataURL().slice(-50); // Last 50 chars
+    const nav = navigator.userAgent + navigator.language + screen.width + screen.height;
+    
+    // Simple hash
+    let hash = 0;
+    const combined = data + nav;
+    for (let i = 0; i < combined.length; i++) {
+      hash = ((hash << 5) - hash) + combined.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
+  } catch {
+    return 'fallback';
+  }
+}
+
+/**
+ * IndexedDB backup storage (harder to clear than localStorage)
+ */
+async function loadFromIDB(): Promise<RateLimitData | null> {
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(IDB_NAME, 1);
+      
+      request.onerror = () => resolve(null);
+      
+      request.onupgradeneeded = (e) => {
+        const db = (e.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const store = tx.objectStore(IDB_STORE);
+        const fp = getBrowserFingerprint();
+        const getReq = store.get(fp);
+        
+        getReq.onsuccess = () => resolve(getReq.result || null);
+        getReq.onerror = () => resolve(null);
+      };
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function saveToIDB(data: RateLimitData): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(IDB_NAME, 1);
+      
+      request.onerror = () => resolve();
+      
+      request.onupgradeneeded = (e) => {
+        const db = (e.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        const store = tx.objectStore(IDB_STORE);
+        const fp = getBrowserFingerprint();
+        store.put(data, fp);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      };
+    } catch {
+      resolve();
+    }
+  });
+}
+
+/**
+ * Load rate limit data from localStorage (with IDB backup check)
  */
 function loadData(): RateLimitData | null {
   try {
@@ -105,11 +200,38 @@ function loadData(): RateLimitData | null {
 }
 
 /**
- * Save rate limit data to localStorage
+ * Load data with backup check - detects localStorage clearing
+ */
+async function loadDataWithBackup(): Promise<RateLimitData | null> {
+  const localData = loadData();
+  
+  // If localStorage has data, use it
+  if (localData) {
+    // Also save to IDB as backup
+    saveToIDB(localData);
+    return localData;
+  }
+  
+  // localStorage empty - check IDB backup (detects clearing)
+  const idbData = await loadFromIDB();
+  if (idbData) {
+    // Restore from backup - user may have cleared localStorage
+    console.warn('Rate limit data restored from backup');
+    saveData(idbData); // Restore to localStorage
+    return idbData;
+  }
+  
+  return null;
+}
+
+/**
+ * Save rate limit data to localStorage and IDB backup
  */
 function saveData(data: RateLimitData): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    // Async backup to IDB (non-blocking)
+    saveToIDB(data);
   } catch (error) {
     console.warn('Failed to save rate limit data:', error);
   }
@@ -138,6 +260,27 @@ function initializeData(): RateLimitData {
     images: [],
     cooldownUntil: 0,
   };
+}
+
+// Flag to track if we've done the initial backup check
+let hasCheckedBackup = false;
+
+/**
+ * Initialize rate limiter - call once on app start to check backups
+ */
+export async function initRateLimiter(): Promise<void> {
+  if (hasCheckedBackup) return;
+  hasCheckedBackup = true;
+  
+  const localData = loadData();
+  if (!localData) {
+    // Check IDB backup
+    const backupData = await loadFromIDB();
+    if (backupData) {
+      console.warn('Rate limit restored from backup (localStorage was cleared)');
+      saveData(backupData);
+    }
+  }
 }
 
 /**

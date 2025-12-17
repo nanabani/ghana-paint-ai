@@ -1,8 +1,4 @@
-/**
- * Debounce utility function
- * Delays function execution until after a specified wait time has passed
- * since the last time it was invoked
- */
+
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -46,5 +42,6 @@ export function debounceImmediate<T extends (...args: any[]) => any>(
     }, wait);
   };
 }
+
 
 
