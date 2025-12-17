@@ -3,6 +3,7 @@ import { AnalysisResult } from '../types';
 import { Paintbrush, Check, Loader2, Maximize2, X, Sparkles, Building2, Info, ChevronDown, Palette, Plus } from 'lucide-react';
 import ColorModal from './ColorModal';
 import AnimatedLoadingMessages from './AnimatedLoadingMessages';
+import RateLimitBanner from './RateLimitBanner';
 
 interface VisualizerProps {
   originalImage: string;
@@ -122,6 +123,9 @@ const Visualizer: React.FC<VisualizerProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-4 sm:py-8 md:px-8">
+      {/* Rate Limit Banner */}
+      <RateLimitBanner isVisible={true} />
+      
       {/* Full Screen Modal */}
       {showFullScreen && (
         <div 
