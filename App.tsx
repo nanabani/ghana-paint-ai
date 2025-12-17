@@ -142,7 +142,7 @@ const App: React.FC = () => {
       // Run validation and compression in parallel for faster processing
       const [validation, compressedBase64] = await Promise.all([
         validateImage(file),
-        compressImage(file, 1600, 1600, 0.80)
+        compressImage(file, 1024, 1024, 0.75)  // Reduced from 1600px to save API costs
       ]);
       
       setValidationResult(validation);
@@ -189,7 +189,7 @@ const App: React.FC = () => {
       setPendingFile(null);
     } else if (pendingFile) {
       // Fallback: compress if not already done
-      const compressedBase64 = await compressImage(pendingFile, 1600, 1600, 0.80);
+      const compressedBase64 = await compressImage(pendingFile, 1024, 1024, 0.75);  // Reduced from 1600px
       await processImage(pendingFile, compressedBase64);
       setPendingFile(null);
     }
@@ -341,20 +341,9 @@ const App: React.FC = () => {
     debouncedVisualize(colorName, colorHex);
   }, [debouncedVisualize]);
 
-  const handlePrefetchVisualization = useCallback((colorName: string, colorHex: string) => {
-    if (!base64Raw || !imageHash || !analysisResult) return;
-    
-    const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
-    const normalizedHexWithHash = normalizedHex.startsWith('#') ? normalizedHex : `#${normalizedHex}`;
-    const cacheKey = `visualization_${imageHash}_${normalizedHexWithHash}`;
-    
-    // Check if already cached, if not, prefetch in background
-    ImageCache.getOrSet(cacheKey, async () => {
-      return await visualizeColor(base64Raw, colorName, normalizedHexWithHash, analysisResult);
-    }).catch(() => {
-      // Silent fail for prefetch
-    });
-  }, [base64Raw, imageHash, analysisResult]);
+  // REMOVED: handlePrefetchVisualization was causing excessive API costs
+  // Each hover over a color triggered an API call (~$0.05-0.15 each)
+  // With 5+ hovers per image × 40 images = 200+ unnecessary API calls
 
   const handleGenerateList = async (colorName: string, area: number) => {
     if (!analysisResult) return;
@@ -527,7 +516,6 @@ const App: React.FC = () => {
                 }}
                 base64Raw={base64Raw}
                 imageHash={imageHash}
-                onPrefetchVisualization={handlePrefetchVisualization}
               />
             </div>
           </>
