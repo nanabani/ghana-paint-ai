@@ -142,7 +142,7 @@ const App: React.FC = () => {
       // Run validation and compression in parallel for faster processing
       const [validation, compressedBase64] = await Promise.all([
         validateImage(file),
-        compressImage(file, 1024, 1024, 0.75)  // Reduced from 1600px to save API costs
+        compressImage(file, 512, 512, 0.70)  // Reduced to 512px for ~75% cost savings on image generation
       ]);
       
       setValidationResult(validation);
@@ -189,7 +189,7 @@ const App: React.FC = () => {
       setPendingFile(null);
     } else if (pendingFile) {
       // Fallback: compress if not already done
-      const compressedBase64 = await compressImage(pendingFile, 1024, 1024, 0.75);  // Reduced from 1600px
+      const compressedBase64 = await compressImage(pendingFile, 512, 512, 0.70);  // Reduced to 512px
       await processImage(pendingFile, compressedBase64);
       setPendingFile(null);
     }
