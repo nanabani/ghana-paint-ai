@@ -125,13 +125,13 @@ describe('Gemini API handlers', () => {
     expect(mockedAnalyze).not.toHaveBeenCalled();
   });
 
-  it('rejects invalid visualization fields before calling Gemini', async () => {
+  it('rejects oversized visualization names before calling Gemini', async () => {
     const res = response();
 
     await visualizeHandler(
       request({
         base64Image: 'YWJj',
-        colorHex: '#GG0000',
+        colorHex: '#AABBCC',
         colorName: 'x'.repeat(101),
       }),
       res,
@@ -139,6 +139,71 @@ describe('Gemini API handlers', () => {
 
     expectJson(res, 400, {
       error: 'colorName must be between 1 and 100 characters',
+    });
+    expect(mockedVisualize).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid visualization hex colors before calling Gemini', async () => {
+    const res = response();
+
+    await visualizeHandler(
+      request({
+        base64Image: 'YWJj',
+        colorHex: '#GG0000',
+        colorName: 'Cloud White',
+      }),
+      res,
+    );
+
+    expectJson(res, 400, {
+      error: 'colorHex must be a six-digit hex color',
+    });
+    expect(mockedVisualize).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized analysis context fields before calling Gemini', async () => {
+    const res = response();
+
+    await visualizeHandler(
+      request({
+        analysisContext: {
+          condition: 'Good',
+          description: 'x'.repeat(1_001),
+          surfaceType: 'Plaster',
+        },
+        base64Image: 'YWJj',
+        colorHex: '#AABBCC',
+        colorName: 'Cloud White',
+      }),
+      res,
+    );
+
+    expectJson(res, 400, {
+      error: 'description must be between 1 and 1000 characters',
+    });
+    expect(mockedVisualize).not.toHaveBeenCalled();
+  });
+
+  it('rejects caller-supplied Gemini cache names', async () => {
+    const res = response();
+
+    await visualizeHandler(
+      request({
+        analysisContext: {
+          cacheName: 'cachedContents/caller-controlled',
+          condition: 'Good',
+          description: 'Wall.',
+          surfaceType: 'Plaster',
+        },
+        base64Image: 'YWJj',
+        colorHex: '#AABBCC',
+        colorName: 'Cloud White',
+      }),
+      res,
+    );
+
+    expectJson(res, 400, {
+      error: 'analysisContext.cacheName is not allowed',
     });
     expect(mockedVisualize).not.toHaveBeenCalled();
   });
@@ -184,12 +249,11 @@ describe('Gemini API handlers', () => {
     mockedVisualize.mockResolvedValue('data:image/png;base64,ZGVm');
     const res = response();
     const analysisContext = {
-      cacheName: 'cachedContents/example',
-      condition: 'Good',
-      description: 'A sound plaster wall.',
+      condition: ' Good ',
+      description: ' A sound plaster wall. ',
       estimatedAreaWarning: 'Measure before buying.',
       palettes: [],
-      surfaceType: 'Plaster',
+      surfaceType: ' Plaster ',
     };
 
     await visualizeHandler(
@@ -206,8 +270,13 @@ describe('Gemini API handlers', () => {
       'YWJj',
       'Cloud White',
       '#AABBCC',
-      analysisContext,
+      {
+        condition: 'Good',
+        description: 'A sound plaster wall.',
+        surfaceType: 'Plaster',
+      },
     );
+    expect(mockedVisualize.mock.calls[0]?.[3]).not.toBe(analysisContext);
     expectJson(res, 200, 'data:image/png;base64,ZGVm');
   });
 

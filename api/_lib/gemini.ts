@@ -3,7 +3,10 @@ import { GoogleGenAI, Type, type Schema } from '@google/genai';
 import { PAINT_COLORS, formatColorsForPrompt } from '../../data/paintColors';
 import type { AnalysisResult, ShoppingList } from '../../types';
 
-export type AnalysisWithCache = AnalysisResult & { cacheName?: string };
+export type VisualizationAnalysisContext = Pick<
+  AnalysisResult,
+  'surfaceType' | 'condition' | 'description'
+>;
 
 const createClient = (): GoogleGenAI => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -13,36 +16,15 @@ const createClient = (): GoogleGenAI => {
   return new GoogleGenAI({ apiKey });
 };
 
-const createCachedAnalysis = async (
-  ai: GoogleGenAI,
-  base64Image: string,
-): Promise<string | null> => {
-  try {
-    if (typeof ai.caches === 'undefined' || !ai.caches.create) {
-      return null;
-    }
-
-    const response = await ai.caches.create({
-      model: 'gemini-2.5-flash',
-      config: {
-        contents: [
-          { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          {
-            text: 'Analyze this image structure and identify wall surfaces, materials, and architectural features.',
-          },
-        ],
-        ttl: '86400s',
-      },
-    });
-
-    return response.name;
-  } catch {
-    return null;
-  }
-};
-
 const analysisSchema: Schema = {
   type: Type.OBJECT,
+  required: [
+    'surfaceType',
+    'condition',
+    'description',
+    'estimatedAreaWarning',
+    'palettes',
+  ],
   properties: {
     surfaceType: {
       type: Type.STRING,
@@ -65,6 +47,7 @@ const analysisSchema: Schema = {
       type: Type.ARRAY,
       items: {
         type: Type.OBJECT,
+        required: ['name', 'description', 'colors'],
         properties: {
           name: { type: Type.STRING },
           description: { type: Type.STRING },
@@ -72,6 +55,7 @@ const analysisSchema: Schema = {
             type: Type.ARRAY,
             items: {
               type: Type.OBJECT,
+              required: ['name', 'hex'],
               properties: {
                 name: { type: Type.STRING, description: 'Paint color name' },
                 hex: { type: Type.STRING, description: 'Hex color code' },
@@ -88,11 +72,25 @@ const analysisSchema: Schema = {
 
 const shoppingSchema: Schema = {
   type: Type.OBJECT,
+  required: [
+    'items',
+    'totalMaterialCostGHS',
+    'estimatedLaborCostGHS',
+    'installationNotes',
+  ],
   properties: {
     items: {
       type: Type.ARRAY,
       items: {
         type: Type.OBJECT,
+        required: [
+          'name',
+          'category',
+          'quantity',
+          'unit',
+          'estimatedPriceGHS',
+          'reason',
+        ],
         properties: {
           name: {
             type: Type.STRING,
@@ -121,10 +119,85 @@ const shoppingSchema: Schema = {
   },
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isString = (value: unknown): value is string => typeof value === 'string';
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+export const validateAnalysisResult = (value: unknown): AnalysisResult => {
+  if (
+    !isRecord(value) ||
+    !isString(value.surfaceType) ||
+    !isString(value.condition) ||
+    !isString(value.description) ||
+    !isString(value.estimatedAreaWarning) ||
+    !Array.isArray(value.palettes)
+  ) {
+    throw new Error('Invalid analysis response');
+  }
+
+  const palettesAreValid = value.palettes.every(
+    (palette) =>
+      isRecord(palette) &&
+      isString(palette.name) &&
+      isString(palette.description) &&
+      Array.isArray(palette.colors) &&
+      palette.colors.every(
+        (color) =>
+          isRecord(color) && isString(color.name) && isString(color.hex),
+      ),
+  );
+  if (!palettesAreValid) {
+    throw new Error('Invalid analysis response');
+  }
+
+  return value as unknown as AnalysisResult;
+};
+
+const shoppingCategories = new Set([
+  'Paint',
+  'Primer',
+  'Hardware',
+  'Preparation',
+  'Other',
+]);
+
+export const validateShoppingList = (value: unknown): ShoppingList => {
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.items) ||
+    !isFiniteNumber(value.totalMaterialCostGHS) ||
+    !isFiniteNumber(value.estimatedLaborCostGHS) ||
+    !isString(value.installationNotes)
+  ) {
+    throw new Error('Invalid shopping list response');
+  }
+
+  const itemsAreValid = value.items.every(
+    (item) =>
+      isRecord(item) &&
+      isString(item.name) &&
+      isString(item.category) &&
+      shoppingCategories.has(item.category) &&
+      isFiniteNumber(item.quantity) &&
+      isString(item.unit) &&
+      isFiniteNumber(item.estimatedPriceGHS) &&
+      isString(item.reason),
+  );
+  if (!itemsAreValid) {
+    throw new Error('Invalid shopping list response');
+  }
+
+  return value as unknown as ShoppingList;
+};
+
 export const analyzeImageForPaint = async (
   base64Image: string,
-  fullSizeImage?: string,
-): Promise<AnalysisWithCache> => {
+  _fullSizeImage?: string,
+): Promise<AnalysisResult> => {
   const ai = createClient();
   const neuceColors = PAINT_COLORS.neuce || [];
   const azarColors = PAINT_COLORS.azar || [];
@@ -167,16 +240,14 @@ For AI-CURATED: prioritize colors NOT in NEUCE/AZAR sections. Focus on complemen
   if (!response.text) {
     throw new Error('No analysis received from Gemini.');
   }
-  const analysis = JSON.parse(response.text) as AnalysisResult;
-  const cacheName = await createCachedAnalysis(ai, fullSizeImage || base64Image);
-  return cacheName ? { ...analysis, cacheName } : analysis;
+  return validateAnalysisResult(JSON.parse(response.text));
 };
 
 export const visualizeColor = async (
   base64Image: string,
   colorName: string,
   colorHex: string,
-  analysisContext?: AnalysisWithCache,
+  analysisContext?: VisualizationAnalysisContext,
 ): Promise<string> => {
   const ai = createClient();
   const normalizedHex = colorHex.trim().toUpperCase().replace(/^#/, '');
@@ -192,13 +263,9 @@ Apply uniformly. Preserve windows, doors, furniture, sky, vegetation.`;
     : 'Paint visualization tool. Paint ALL painted wall surfaces uniformly. Preserve windows, doors, furniture, sky, vegetation.';
   const parts: Array<Record<string, unknown>> = [];
 
-  if (analysisContext?.cacheName) {
-    parts.push({ cachedContent: { name: analysisContext.cacheName } });
-  } else {
-    parts.push({
-      inlineData: { mimeType: 'image/jpeg', data: base64Image },
-    });
-  }
+  parts.push({
+    inlineData: { mimeType: 'image/jpeg', data: base64Image },
+  });
   parts.push({ text: enhancedPrompt });
 
   const response = await ai.models.generateContent({
@@ -263,5 +330,5 @@ export const generateShoppingList = async (
   if (!response.text) {
     throw new Error('No shopping list received.');
   }
-  return JSON.parse(response.text) as ShoppingList;
+  return validateShoppingList(JSON.parse(response.text));
 };

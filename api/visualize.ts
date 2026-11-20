@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import {
-  type AnalysisWithCache,
+  type VisualizationAnalysisContext,
   visualizeColor,
 } from './_lib/gemini';
 import {
@@ -20,21 +20,26 @@ import { checkServerRateLimit } from './_lib/rate-limit';
 const MAX_IMAGE_LENGTH = 3_900_000;
 const MAX_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 1_000;
-const MAX_CACHE_NAME_LENGTH = 256;
 
-const validateAnalysisContext = (value: unknown): AnalysisWithCache => {
+const validateAnalysisContext = (
+  value: unknown,
+): VisualizationAnalysisContext => {
   const context = requireRecord(value);
-  requireStringField(context, 'surfaceType', { maxLength: MAX_NAME_LENGTH });
-  requireStringField(context, 'condition', { maxLength: MAX_NAME_LENGTH });
-  requireStringField(context, 'description', {
+  if (context.cacheName !== undefined) {
+    throw new HttpError(400, 'analysisContext.cacheName is not allowed');
+  }
+
+  const surfaceType = requireStringField(context, 'surfaceType', {
+    maxLength: MAX_NAME_LENGTH,
+  });
+  const condition = requireStringField(context, 'condition', {
+    maxLength: MAX_NAME_LENGTH,
+  });
+  const description = requireStringField(context, 'description', {
     maxLength: MAX_DESCRIPTION_LENGTH,
   });
-  if (context.cacheName !== undefined) {
-    requireStringField(context, 'cacheName', {
-      maxLength: MAX_CACHE_NAME_LENGTH,
-    });
-  }
-  return context as unknown as AnalysisWithCache;
+
+  return { condition, description, surfaceType };
 };
 
 const handler = async (
