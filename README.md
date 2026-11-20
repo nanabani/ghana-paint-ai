@@ -10,25 +10,40 @@ See your walls before you paint. Upload a photo of your space, and our AI visual
 - ⚡ **Fast & Cached** - Optimized performance with intelligent caching
 - 🎯 **Pro Recommendations** - AI-powered color suggestions based on your space
 
-## Run Locally
+## Local Development
 
-**Prerequisites:** Node.js
+**Prerequisites:** Node.js 22.12.0 or newer. The locked Vitest toolchain
+requires Node 22.12.0 at minimum.
 
 1. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Create a `.env` file in the root directory and set your Gemini API key:
+2. Copy the example environment file to `.env.local`:
    ```bash
-   GEMINI_API_KEY=your_api_key_here
+   cp .env.example .env.local
    ```
-   Get your API key from: https://ai.google.dev/
+   Set `GEMINI_API_KEY` in `.env.local` to a key from
+   [Google AI Studio](https://ai.google.dev/). `.env.local` is ignored by Git
+   and must not be committed.
 
-3. Run the app:
+3. Start the local app:
    ```bash
    npm run dev
    ```
+   This runs Vercel CLI's development server, which serves the Vite frontend
+   and the `/api` functions together.
+
+## Deploying to Vercel
+
+Before merging or deploying, the project owner must add `GEMINI_API_KEY` in
+**Vercel Project Settings → Environment Variables** for every intended
+environment (Production, Preview, and/or Development), then redeploy so the
+configuration takes effect.
+
+`GEMINI_API_KEY` is server-only. Never expose it through a `VITE_` variable,
+Vite `define`, or any other client build-time injection.
 
 ## Build for Production
 
@@ -40,8 +55,8 @@ npm run build
 
 This project uses environment variables for sensitive configuration. Never commit your `.env` file to version control.
 
-- Copy `.env.example` to `.env` and fill in your API keys
-- The `.env` file is already in `.gitignore` and will not be pushed to GitHub
+- `.env.example` documents required variable names with non-secret placeholders.
+- All other `.env*` files are ignored by Git.
 
 ## Tech Stack
 
