@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { Readable } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -20,6 +21,13 @@ const request = (overrides: Partial<VercelRequest> = {}): VercelRequest =>
     headers: {},
     method: 'POST',
     ...overrides,
+  }) as VercelRequest;
+
+const rawRequest = (chunks: Array<string | Buffer>): VercelRequest =>
+  Object.assign(Readable.from(chunks), {
+    body: undefined,
+    headers: { 'content-type': 'application/json' },
+    method: 'POST',
   }) as VercelRequest;
 
 const response = (): VercelResponse => {
@@ -53,13 +61,13 @@ describe('requirePost', () => {
 });
 
 describe('parseJsonBody', () => {
-  it('rejects requests without a JSON content type', () => {
+  it('rejects requests without a JSON content type', async () => {
     const req = request({
       body: '{}',
       headers: { 'content-type': 'text/plain' },
     });
 
-    expect(() => parseJsonBody(req)).toThrowError(
+    await expect(parseJsonBody(req)).rejects.toEqual(
       expect.objectContaining({
         message: 'Content-Type must be application/json',
         statusCode: 415,
@@ -67,7 +75,7 @@ describe('parseJsonBody', () => {
     );
   });
 
-  it('rejects requests whose declared body exceeds 4,000,000 bytes', () => {
+  it('rejects requests whose declared body exceeds 4,000,000 bytes', async () => {
     const req = request({
       body: '{}',
       headers: {
@@ -76,7 +84,7 @@ describe('parseJsonBody', () => {
       },
     });
 
-    expect(() => parseJsonBody(req)).toThrowError(
+    await expect(parseJsonBody(req)).rejects.toEqual(
       expect.objectContaining({
         message: 'Request body too large',
         statusCode: 413,
@@ -84,24 +92,67 @@ describe('parseJsonBody', () => {
     );
   });
 
-  it('rejects a body whose actual UTF-8 size exceeds 4,000,000 bytes', () => {
+  it('rejects an oversized pre-parsed body using a conservative fallback', async () => {
     const req = request({
-      body: JSON.stringify({ image: 'a'.repeat(MAX_BODY_BYTES) }),
+      body: { image: 'a'.repeat(MAX_BODY_BYTES) },
       headers: { 'content-type': 'application/json' },
     });
 
-    expect(() => parseJsonBody(req)).toThrowError(
+    await expect(parseJsonBody(req)).rejects.toEqual(
       expect.objectContaining({ statusCode: 413 }),
     );
   });
 
-  it('rejects malformed JSON', () => {
+  it('rejects empty pre-parsed bodies', async () => {
+    const req = request({
+      body: undefined,
+      headers: { 'content-type': 'application/json' },
+    });
+
+    await expect(parseJsonBody(req)).rejects.toEqual(
+      expect.objectContaining({
+        message: 'Request body is required',
+        statusCode: 400,
+      }),
+    );
+  });
+
+  it('rejects empty raw bodies', async () => {
+    await expect(parseJsonBody(rawRequest([]))).rejects.toEqual(
+      expect.objectContaining({
+        message: 'Request body is required',
+        statusCode: 400,
+      }),
+    );
+  });
+
+  it('rejects oversized chunked bodies before parsing JSON', async () => {
+    const req = rawRequest([
+      Buffer.alloc(MAX_BODY_BYTES, 0x20),
+      Buffer.from('x'),
+    ]);
+
+    await expect(parseJsonBody(req)).rejects.toEqual(
+      expect.objectContaining({
+        message: 'Request body too large',
+        statusCode: 413,
+      }),
+    );
+  });
+
+  it('parses a JSON body from raw chunks', async () => {
+    await expect(parseJsonBody(rawRequest(['{"image":', '"YWJj"}']))).resolves.toEqual({
+      image: 'YWJj',
+    });
+  });
+
+  it('rejects malformed JSON', async () => {
     const req = request({
       body: '{',
       headers: { 'content-type': 'application/json' },
     });
 
-    expect(() => parseJsonBody(req)).toThrowError(
+    await expect(parseJsonBody(req)).rejects.toEqual(
       expect.objectContaining({
         message: 'Invalid JSON body',
         statusCode: 400,
@@ -109,14 +160,14 @@ describe('parseJsonBody', () => {
     );
   });
 
-  it('returns an object body already parsed by Vercel', () => {
+  it('returns an object body already parsed by Vercel', async () => {
     const body = { image: 'YWJj' };
     const req = request({
       body,
       headers: { 'content-type': 'application/json; charset=utf-8' },
     });
 
-    expect(parseJsonBody(req)).toBe(body);
+    await expect(parseJsonBody(req)).resolves.toBe(body);
   });
 });
 

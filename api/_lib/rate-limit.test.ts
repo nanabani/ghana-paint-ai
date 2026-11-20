@@ -4,6 +4,7 @@ import {
   RATE_LIMIT_MAX_REQUESTS,
   RATE_LIMIT_WINDOW_MS,
   checkServerRateLimit,
+  getServerRateLimitEntryCount,
 } from './rate-limit';
 
 describe('checkServerRateLimit', () => {
@@ -57,5 +58,17 @@ describe('checkServerRateLimit', () => {
     expect(checkServerRateLimit(key, startedAt + 1).retryAfterSeconds).toBe(
       Math.ceil((RATE_LIMIT_WINDOW_MS - 1) / 1_000),
     );
+  });
+
+  it('prunes expired identities when a new window begins', () => {
+    const startedAt = 1_000_000;
+    checkServerRateLimit('stale-client-a', startedAt);
+    checkServerRateLimit('stale-client-b', startedAt);
+
+    expect(getServerRateLimitEntryCount()).toBeGreaterThanOrEqual(2);
+
+    checkServerRateLimit('current-client', startedAt + RATE_LIMIT_WINDOW_MS);
+
+    expect(getServerRateLimitEntryCount()).toBe(1);
   });
 });

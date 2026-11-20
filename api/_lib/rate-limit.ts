@@ -12,11 +12,28 @@ interface RateLimitWindow {
 }
 
 const windows = new Map<string, RateLimitWindow>();
+let nextPruneAt = 0;
+
+const pruneExpiredWindows = (now: number): void => {
+  if (now < nextPruneAt) {
+    return;
+  }
+
+  for (const [key, window] of windows) {
+    if (now - window.startedAt >= RATE_LIMIT_WINDOW_MS) {
+      windows.delete(key);
+    }
+  }
+  nextPruneAt = now + RATE_LIMIT_WINDOW_MS;
+};
+
+export const getServerRateLimitEntryCount = (): number => windows.size;
 
 export const checkServerRateLimit = (
   key: string,
   now: number = Date.now(),
 ): RateLimitResult => {
+  pruneExpiredWindows(now);
   const current = windows.get(key);
 
   if (!current || now - current.startedAt >= RATE_LIMIT_WINDOW_MS) {

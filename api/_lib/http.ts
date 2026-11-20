@@ -36,22 +36,59 @@ export const requirePost = (
 const firstHeaderValue = (value: string | string[] | undefined): string | undefined =>
   Array.isArray(value) ? value[0] : value;
 
-const bodySize = (body: unknown): number => {
-  if (Buffer.isBuffer(body)) {
-    return body.byteLength;
+const ensureBodyWithinLimit = (body: unknown): void => {
+  let serialized: string | undefined;
+  try {
+    serialized = JSON.stringify(body);
+  } catch {
+    throw new HttpError(400, 'Invalid JSON body');
   }
-  if (typeof body === 'string') {
-    return Buffer.byteLength(body, 'utf8');
+
+  if (serialized === undefined) {
+    throw new HttpError(400, 'Invalid JSON body');
+  }
+
+  if (Buffer.byteLength(serialized, 'utf8') > MAX_BODY_BYTES) {
+    throw new HttpError(413, 'Request body too large');
+  }
+};
+
+const parseRawJson = (body: Buffer | string): unknown => {
+  const text = body.toString();
+  if (text.trim().length === 0) {
+    throw new HttpError(400, 'Request body is required');
   }
 
   try {
-    return Buffer.byteLength(JSON.stringify(body), 'utf8');
+    return JSON.parse(text);
   } catch {
     throw new HttpError(400, 'Invalid JSON body');
   }
 };
 
-export const parseJsonBody = (request: VercelRequest): unknown => {
+const readRawBody = async (request: VercelRequest): Promise<Buffer> => {
+  const chunks: Buffer[] = [];
+  let totalBytes = 0;
+
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.byteLength;
+    if (totalBytes > MAX_BODY_BYTES) {
+      throw new HttpError(413, 'Request body too large');
+    }
+    chunks.push(buffer);
+  }
+
+  if (totalBytes === 0) {
+    throw new HttpError(400, 'Request body is required');
+  }
+  return Buffer.concat(chunks, totalBytes);
+};
+
+const hasRawStream = (request: VercelRequest): boolean =>
+  typeof request[Symbol.asyncIterator] === 'function';
+
+export const parseJsonBody = async (request: VercelRequest): Promise<unknown> => {
   const contentType = firstHeaderValue(request.headers['content-type']);
   if (contentType?.split(';', 1)[0].trim().toLowerCase() !== 'application/json') {
     throw new HttpError(415, 'Content-Type must be application/json');
@@ -65,19 +102,25 @@ export const parseJsonBody = (request: VercelRequest): unknown => {
     }
   }
 
-  if (bodySize(request.body) > MAX_BODY_BYTES) {
-    throw new HttpError(413, 'Request body too large');
+  if (request.body === undefined) {
+    if (!hasRawStream(request)) {
+      throw new HttpError(400, 'Request body is required');
+    }
+    return parseRawJson(await readRawBody(request));
   }
 
-  if (typeof request.body !== 'string' && !Buffer.isBuffer(request.body)) {
-    return request.body;
+  if (typeof request.body === 'string' || Buffer.isBuffer(request.body)) {
+    if (Buffer.byteLength(request.body) > MAX_BODY_BYTES) {
+      throw new HttpError(413, 'Request body too large');
+    }
+    return parseRawJson(request.body);
   }
 
-  try {
-    return JSON.parse(request.body.toString());
-  } catch {
-    throw new HttpError(400, 'Invalid JSON body');
-  }
+  // Content-Length is the authoritative pre-parse guard. Reserialization cannot
+  // recover the original wire size, but provides a conservative fallback when
+  // the platform omits that header.
+  ensureBodyWithinLimit(request.body);
+  return request.body;
 };
 
 export const getClientIp = (request: VercelRequest): string => {
