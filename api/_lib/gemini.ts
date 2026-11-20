@@ -8,8 +8,34 @@ export type VisualizationAnalysisContext = Pick<
   'surfaceType' | 'condition' | 'description'
 >;
 
+const MAX_NAME_LENGTH = 100;
+const MAX_DESCRIPTION_LENGTH = 1_000;
+const MAX_NOTES_LENGTH = 2_000;
+const MAX_PALETTES = 10;
+const MAX_COLORS_PER_PALETTE = 20;
+const MAX_SHOPPING_ITEMS = 100;
+const MAX_QUANTITY = 10_000;
+const MAX_COST_GHS = 100_000_000;
+const MAX_VISUALIZATION_BASE64_LENGTH = 4_000_000;
+const BASE64_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/i;
+const visualizationMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
+const getGeminiApiKey = (): string | undefined => {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  return apiKey || undefined;
+};
+
+export const isGeminiConfigured = (): boolean =>
+  getGeminiApiKey() !== undefined;
+
 const createClient = (): GoogleGenAI => {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getGeminiApiKey();
   if (!apiKey) {
     throw new Error('Gemini is not configured');
   }
@@ -122,24 +148,42 @@ const shoppingSchema: Schema = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isString = (value: unknown): value is string => typeof value === 'string';
-
-const isFiniteNumber = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value);
-
-const isImageMimeType = (value: unknown): value is string =>
+const isBoundedString = (
+  value: unknown,
+  maxLength: number,
+): value is string =>
   typeof value === 'string' &&
-  value.length <= 100 &&
-  /^image\/[A-Za-z0-9][A-Za-z0-9.+-]*$/.test(value);
+  value.length > 0 &&
+  value.length <= maxLength;
+
+const isBoundedNumber = (
+  value: unknown,
+  min: number,
+  max: number,
+): value is number =>
+  typeof value === 'number' &&
+  Number.isFinite(value) &&
+  value >= min &&
+  value <= max;
+
+const isVisualizationMimeType = (value: unknown): value is string =>
+  typeof value === 'string' && visualizationMimeTypes.has(value);
+
+const isVisualizationBase64 = (value: unknown): value is string =>
+  typeof value === 'string' &&
+  value.length > 0 &&
+  value.length <= MAX_VISUALIZATION_BASE64_LENGTH &&
+  BASE64_PATTERN.test(value);
 
 export const validateAnalysisResult = (value: unknown): AnalysisResult => {
   if (
     !isRecord(value) ||
-    !isString(value.surfaceType) ||
-    !isString(value.condition) ||
-    !isString(value.description) ||
-    !isString(value.estimatedAreaWarning) ||
-    !Array.isArray(value.palettes)
+    !isBoundedString(value.surfaceType, MAX_NAME_LENGTH) ||
+    !isBoundedString(value.condition, MAX_NAME_LENGTH) ||
+    !isBoundedString(value.description, MAX_DESCRIPTION_LENGTH) ||
+    !isBoundedString(value.estimatedAreaWarning, MAX_DESCRIPTION_LENGTH) ||
+    !Array.isArray(value.palettes) ||
+    value.palettes.length > MAX_PALETTES
   ) {
     throw new Error('Invalid analysis response');
   }
@@ -147,12 +191,16 @@ export const validateAnalysisResult = (value: unknown): AnalysisResult => {
   const palettesAreValid = value.palettes.every(
     (palette) =>
       isRecord(palette) &&
-      isString(palette.name) &&
-      isString(palette.description) &&
+      isBoundedString(palette.name, MAX_NAME_LENGTH) &&
+      isBoundedString(palette.description, MAX_DESCRIPTION_LENGTH) &&
       Array.isArray(palette.colors) &&
+      palette.colors.length <= MAX_COLORS_PER_PALETTE &&
       palette.colors.every(
         (color) =>
-          isRecord(color) && isString(color.name) && isString(color.hex),
+          isRecord(color) &&
+          isBoundedString(color.name, MAX_NAME_LENGTH) &&
+          isBoundedString(color.hex, 7) &&
+          HEX_COLOR_PATTERN.test(color.hex),
       ),
   );
   if (!palettesAreValid) {
@@ -174,9 +222,10 @@ export const validateShoppingList = (value: unknown): ShoppingList => {
   if (
     !isRecord(value) ||
     !Array.isArray(value.items) ||
-    !isFiniteNumber(value.totalMaterialCostGHS) ||
-    !isFiniteNumber(value.estimatedLaborCostGHS) ||
-    !isString(value.installationNotes)
+    value.items.length > MAX_SHOPPING_ITEMS ||
+    !isBoundedNumber(value.totalMaterialCostGHS, 0, MAX_COST_GHS) ||
+    !isBoundedNumber(value.estimatedLaborCostGHS, 0, MAX_COST_GHS) ||
+    !isBoundedString(value.installationNotes, MAX_NOTES_LENGTH)
   ) {
     throw new Error('Invalid shopping list response');
   }
@@ -184,13 +233,13 @@ export const validateShoppingList = (value: unknown): ShoppingList => {
   const itemsAreValid = value.items.every(
     (item) =>
       isRecord(item) &&
-      isString(item.name) &&
-      isString(item.category) &&
+      isBoundedString(item.name, MAX_DESCRIPTION_LENGTH) &&
+      isBoundedString(item.category, MAX_NAME_LENGTH) &&
       shoppingCategories.has(item.category) &&
-      isFiniteNumber(item.quantity) &&
-      isString(item.unit) &&
-      isFiniteNumber(item.estimatedPriceGHS) &&
-      isString(item.reason),
+      isBoundedNumber(item.quantity, 0, MAX_QUANTITY) &&
+      isBoundedString(item.unit, MAX_NAME_LENGTH) &&
+      isBoundedNumber(item.estimatedPriceGHS, 0, MAX_COST_GHS) &&
+      isBoundedString(item.reason, MAX_DESCRIPTION_LENGTH),
   );
   if (!itemsAreValid) {
     throw new Error('Invalid shopping list response');
@@ -289,7 +338,10 @@ Apply uniformly. Preserve windows, doors, furniture, sky, vegetation.`;
   if (responseParts) {
     for (const part of responseParts) {
       if (part.inlineData?.data) {
-        if (!isImageMimeType(part.inlineData.mimeType)) {
+        if (
+          !isVisualizationMimeType(part.inlineData.mimeType) ||
+          !isVisualizationBase64(part.inlineData.data)
+        ) {
           throw new Error('Invalid visualization image response');
         }
         const inputBase64 = base64Image.replace(

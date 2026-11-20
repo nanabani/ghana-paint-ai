@@ -30,6 +30,7 @@ vi.mock('@google/genai', () => ({
 import {
   analyzeImageForPaint,
   generateShoppingList,
+  isGeminiConfigured,
   validateAnalysisResult,
   validateShoppingList,
   visualizeColor,
@@ -98,6 +99,29 @@ describe('Gemini response validation', () => {
     );
   });
 
+  it.each([
+    ['oversized palette arrays', { ...analysisResult, palettes: Array(11).fill(analysisResult.palettes[0]) }],
+    ['oversized color arrays', {
+      ...analysisResult,
+      palettes: [{
+        ...analysisResult.palettes[0],
+        colors: Array(21).fill(analysisResult.palettes[0].colors[0]),
+      }],
+    }],
+    ['oversized strings', { ...analysisResult, description: 'x'.repeat(1_001) }],
+    ['invalid hex colors', {
+      ...analysisResult,
+      palettes: [{
+        ...analysisResult.palettes[0],
+        colors: [{ hex: 'red', name: 'Broken' }],
+      }],
+    }],
+  ])('rejects analysis results with %s', (_name, value) => {
+    expect(() => validateAnalysisResult(value)).toThrow(
+      'Invalid analysis response',
+    );
+  });
+
   it('accepts a complete shopping list', () => {
     expect(validateShoppingList(shoppingList)).toEqual(shoppingList);
   });
@@ -117,12 +141,35 @@ describe('Gemini response validation', () => {
       'Invalid shopping list response',
     );
   });
+
+  it.each([
+    ['oversized item arrays', { ...shoppingList, items: Array(101).fill(shoppingList.items[0]) }],
+    ['oversized strings', { ...shoppingList, installationNotes: 'x'.repeat(2_001) }],
+    ['out-of-range quantities', {
+      ...shoppingList,
+      items: [{ ...shoppingList.items[0], quantity: 10_001 }],
+    }],
+    ['negative costs', { ...shoppingList, totalMaterialCostGHS: -1 }],
+    ['non-finite costs', { ...shoppingList, estimatedLaborCostGHS: Number.POSITIVE_INFINITY }],
+  ])('rejects shopping lists with %s', (_name, value) => {
+    expect(() => validateShoppingList(value)).toThrow(
+      'Invalid shopping list response',
+    );
+  });
 });
 
 describe('Gemini server operations', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.GEMINI_API_KEY = 'test-key';
+  });
+
+  it('reports whether Gemini is configured', () => {
+    delete process.env.GEMINI_API_KEY;
+    expect(isGeminiConfigured()).toBe(false);
+
+    process.env.GEMINI_API_KEY = 'test-key';
+    expect(isGeminiConfigured()).toBe(true);
   });
 
   it('requires all analysis schema fields and never creates cached content', async () => {
@@ -194,12 +241,32 @@ describe('Gemini server operations', () => {
     ['missing', undefined],
     ['non-image', 'text/plain'],
     ['oversized', `image/${'a'.repeat(100)}`],
+    ['disallowed image', 'image/gif'],
   ])('rejects a visualization with a %s MIME type', async (_name, mimeType) => {
     sdk.generateContent.mockResolvedValueOnce({
       candidates: [
         {
           content: {
             parts: [{ inlineData: { data: 'ZGVm', mimeType } }],
+          },
+        },
+      ],
+    });
+
+    await expect(
+      visualizeColor('YWJj', 'Cloud White', '#AABBCC'),
+    ).rejects.toThrow('Invalid visualization image response');
+  });
+
+  it.each([
+    ['invalid base64', 'not base64!'],
+    ['oversized base64', 'a'.repeat(4_000_001)],
+  ])('rejects visualization %s payloads', async (_name, data) => {
+    sdk.generateContent.mockResolvedValueOnce({
+      candidates: [
+        {
+          content: {
+            parts: [{ inlineData: { data, mimeType: 'image/jpeg' } }],
           },
         },
       ],

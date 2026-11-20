@@ -12,7 +12,8 @@ See your walls before you paint. Upload a photo of your space, and our AI visual
 
 ## Local Development
 
-**Prerequisites:** Node.js
+**Prerequisites:** Node.js 22.12.0 or newer. The locked Vitest toolchain
+requires Node 22.12.0 at minimum.
 
 1. Install dependencies:
    ```bash

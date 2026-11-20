@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { generateShoppingList } from './_lib/gemini';
+import {
+  generateShoppingList,
+  isGeminiConfigured,
+} from './_lib/gemini';
 import {
   HttpError,
   getClientIp,
@@ -23,15 +26,6 @@ const handler = async (
     return;
   }
 
-  const rateLimit = checkServerRateLimit(
-    `shopping-list:${getClientIp(request)}`,
-  );
-  if (!rateLimit.allowed) {
-    response.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
-    sendJson(response, 429, { error: 'Too many requests' });
-    return;
-  }
-
   try {
     const body = requireRecord(await parseJsonBody(request));
     const surfaceType = requireStringField(body, 'surfaceType', {
@@ -45,8 +39,15 @@ const handler = async (
     });
     const area = requireNumberField(body, 'area', { min: 1, max: 10_000 });
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!isGeminiConfigured()) {
       sendJson(response, 503, { error: 'Service unavailable' });
+      return;
+    }
+
+    const rateLimit = checkServerRateLimit(`gemini:${getClientIp(request)}`);
+    if (!rateLimit.allowed) {
+      response.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
+      sendJson(response, 429, { error: 'Too many requests' });
       return;
     }
 

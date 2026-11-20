@@ -23,10 +23,11 @@ Prevent the Gemini API key from reaching browser code while preserving image ana
 
 1. The browser validates and compresses an uploaded image exactly as it does today.
 2. The browser sends JSON to a same-origin `/api/*` endpoint.
-3. The endpoint validates method, content length, rate limit, JSON shape, and field bounds.
-4. Server-only code creates a Gemini client from `GEMINI_API_KEY` and performs the operation.
-5. The endpoint returns the same typed result the UI currently consumes.
-6. Errors return a stable JSON `{ "error": "..." }` shape without exposing credentials or provider internals.
+3. The endpoint validates method, content length, JSON shape, and field bounds, then checks server configuration.
+4. Immediately before provider invocation, the endpoint charges one shared `gemini:<client-ip>` fixed-window budget across all three operations.
+5. Server-only code creates a Gemini client from `GEMINI_API_KEY` and performs the operation.
+6. The endpoint returns the same typed result the UI currently consumes.
+7. Errors return a stable JSON `{ "error": "..." }` shape without exposing credentials or provider internals.
 
 ## Abuse Protection
 
@@ -35,7 +36,7 @@ Prevent the Gemini API key from reaching browser code while preserving image ana
 - Four-megabyte application request ceiling: declared lengths are rejected before application parsing, raw streams are bounded while reading, and platform-parsed bodies receive a conservative serialized-size fallback.
 - Image payloads must be bounded base64 strings.
 - Text, color, cache-name, and area fields are constrained.
-- Best-effort in-memory fixed-window limiting per client IP. This intentionally adds no paid service; because serverless instances do not share memory, it complements rather than replaces Vercel Firewall rate limiting.
+- Best-effort in-memory fixed-window limiting uses one shared Gemini budget per client IP across all three endpoints. Invalid requests and missing configuration are not charged. This intentionally adds no paid service; because serverless instances do not share memory, it complements rather than replaces Vercel Firewall rate limiting.
 
 ## Secret Hygiene
 

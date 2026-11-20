@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   analyzeImageForPaint,
+  compressImage,
   generateShoppingList,
   visualizeColor,
 } from './gemini';
@@ -49,6 +50,69 @@ afterEach(() => {
 });
 
 describe('Gemini browser API client', () => {
+  it('requests and returns JPEG when browser compression retries', async () => {
+    const toBlob = vi
+      .fn()
+      .mockImplementationOnce((callback: BlobCallback) => callback(null))
+      .mockImplementationOnce((callback: BlobCallback, mimeType: string) =>
+        callback(new Blob(['jpeg'], { type: mimeType })),
+      );
+    const drawImage = vi.fn();
+    vi.stubGlobal(
+      'Image',
+      class {
+        height = 600;
+        onerror: OnErrorEventHandler | null = null;
+        onload: ((event: Event) => unknown) | null = null;
+        width = 800;
+
+        set src(_value: string) {
+          this.onload?.(new Event('load'));
+        }
+      },
+    );
+    vi.stubGlobal(
+      'FileReader',
+      class {
+        onerror: OnErrorEventHandler | null = null;
+        onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+        onloadend: ((event: ProgressEvent<FileReader>) => void) | null = null;
+        result: string | ArrayBuffer | null = null;
+
+        readAsDataURL(value: Blob): void {
+          this.result =
+            value instanceof File
+              ? 'data:image/png;base64,aW5wdXQ='
+              : 'data:image/jpeg;base64,anBlZw==';
+          const event = { target: this } as unknown as ProgressEvent<FileReader>;
+          this.onload?.(event);
+          this.onloadend?.(event);
+        }
+      },
+    );
+    vi.stubGlobal('document', {
+      createElement: () => ({
+        getContext: () => ({ drawImage }),
+        height: 0,
+        toBlob,
+        width: 0,
+      }),
+    });
+
+    const file = new File(
+      [new Uint8Array(6 * 1024 * 1024)],
+      'large-source.png',
+      { type: 'image/png' },
+    );
+
+    await expect(compressImage(file)).resolves.toBe('anBlZw==');
+    expect(toBlob).toHaveBeenCalledTimes(2);
+    expect(toBlob.mock.calls.map((call) => call.slice(1))).toEqual([
+      ['image/jpeg', 0.7],
+      ['image/jpeg', 0.7],
+    ]);
+  });
+
   it('posts only the compressed image to the analyze endpoint and parses success', async () => {
     const fetchMock = vi.fn<typeof fetch>();
     fetchMock.mockResolvedValueOnce(jsonResponse(analysisResult));
@@ -229,6 +293,20 @@ describe('Gemini browser API client', () => {
     expect(htmlSource).not.toContain('@google/genai');
   });
 
+  it('rejects arrays masquerading as browser response records', async () => {
+    const arrayResponse = Object.assign([], analysisResult);
+    const fetchMock = vi.fn<typeof fetch>();
+    fetchMock.mockResolvedValueOnce({
+      json: async () => arrayResponse,
+      ok: true,
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(analyzeImageForPaint('image')).rejects.toThrow(
+      'Request failed. Please try again.',
+    );
+  });
+
   it('uses the Vercel dev server for full-stack local development', () => {
     const packageJson = JSON.parse(
       readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
@@ -240,5 +318,15 @@ describe('Gemini browser API client', () => {
     expect(packageJson.scripts?.dev).toBe('vercel dev');
     expect(packageJson.scripts?.['dev:client']).toBe('vite');
     expect(packageJson.devDependencies?.vercel).toEqual(expect.any(String));
+  });
+
+  it('declares the minimum Node version required by the locked toolchain', () => {
+    const packageJson = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    ) as {
+      engines?: Record<string, string>;
+    };
+
+    expect(packageJson.engines?.node).toBe('>=22.12.0');
   });
 });

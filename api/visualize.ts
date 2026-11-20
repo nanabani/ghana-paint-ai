@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import {
   type VisualizationAnalysisContext,
+  isGeminiConfigured,
   visualizeColor,
 } from './_lib/gemini';
 import {
@@ -50,13 +51,6 @@ const handler = async (
     return;
   }
 
-  const rateLimit = checkServerRateLimit(`visualize:${getClientIp(request)}`);
-  if (!rateLimit.allowed) {
-    response.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
-    sendJson(response, 429, { error: 'Too many requests' });
-    return;
-  }
-
   try {
     const body = requireRecord(await parseJsonBody(request));
     const base64Image = requireBase64Field(
@@ -73,8 +67,15 @@ const handler = async (
         ? undefined
         : validateAnalysisContext(body.analysisContext);
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!isGeminiConfigured()) {
       sendJson(response, 503, { error: 'Service unavailable' });
+      return;
+    }
+
+    const rateLimit = checkServerRateLimit(`gemini:${getClientIp(request)}`);
+    if (!rateLimit.allowed) {
+      response.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
+      sendJson(response, 429, { error: 'Too many requests' });
       return;
     }
 

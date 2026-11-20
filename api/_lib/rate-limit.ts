@@ -11,6 +11,8 @@ interface RateLimitWindow {
   startedAt: number;
 }
 
+// Best-effort protection shared only by requests that reach this warm
+// serverless instance. This is intentionally not a distributed rate limit.
 const windows = new Map<string, RateLimitWindow>();
 let nextPruneAt = 0;
 

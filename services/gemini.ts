@@ -27,7 +27,7 @@ const IMAGE_DATA_URL_PATTERN =
   /^data:image\/[A-Za-z0-9.+-]+;base64,[A-Za-z0-9+/]+={0,2}$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isString = (value: unknown): value is string =>
   typeof value === 'string';
@@ -177,10 +177,6 @@ export const compressImage = async (
           adaptiveQuality = 0.85;
         }
 
-        const supportsWebP =
-          canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
-        const mimeType = supportsWebP ? 'image/webp' : 'image/jpeg';
-
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -211,7 +207,7 @@ export const compressImage = async (
             blobReader.onerror = reject;
             blobReader.readAsDataURL(blob);
           },
-          mimeType,
+          'image/jpeg',
           adaptiveQuality,
         );
       };

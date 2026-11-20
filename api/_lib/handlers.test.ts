@@ -7,17 +7,20 @@ import visualizeHandler from '../visualize';
 import {
   analyzeImageForPaint,
   generateShoppingList,
+  isGeminiConfigured,
   visualizeColor,
 } from './gemini';
 
 vi.mock('./gemini', () => ({
   analyzeImageForPaint: vi.fn(),
   generateShoppingList: vi.fn(),
+  isGeminiConfigured: vi.fn(),
   visualizeColor: vi.fn(),
 }));
 
 const mockedAnalyze = vi.mocked(analyzeImageForPaint);
 const mockedGenerateShoppingList = vi.mocked(generateShoppingList);
+const mockedIsGeminiConfigured = vi.mocked(isGeminiConfigured);
 const mockedVisualize = vi.mocked(visualizeColor);
 const originalGeminiApiKey = process.env.GEMINI_API_KEY;
 
@@ -66,6 +69,7 @@ const expectJson = (
 describe('Gemini API handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedIsGeminiConfigured.mockReturnValue(true);
     process.env.GEMINI_API_KEY = 'test-key';
   });
 
@@ -100,12 +104,22 @@ describe('Gemini API handlers', () => {
       },
     ],
   ])('returns a stable configuration error for %s', async (_name, handler, body) => {
-    delete process.env.GEMINI_API_KEY;
+    mockedIsGeminiConfigured.mockReturnValue(false);
     const res = response();
 
     await handler(request(body), res);
 
     expectJson(res, 503, { error: 'Service unavailable' });
+  });
+
+  it('validates requests before checking configuration', async () => {
+    mockedIsGeminiConfigured.mockReturnValue(false);
+    const res = response();
+
+    await analyzeHandler(request({ base64Image: 'not base64!' }), res);
+
+    expectJson(res, 400, { error: 'base64Image must be valid base64' });
+    expect(mockedIsGeminiConfigured).not.toHaveBeenCalled();
   });
 
   it('rejects invalid analyze input before calling Gemini', async () => {
@@ -390,5 +404,113 @@ describe('Gemini API handlers', () => {
 
     expect(res.setHeader).toHaveBeenCalledWith('Retry-After', '60');
     expectJson(res, 429, { error: 'Too many requests' });
+  });
+
+  it('does not charge invalid requests against the provider budget', async () => {
+    mockedAnalyze.mockResolvedValue({
+      condition: 'Good',
+      description: 'Wall.',
+      estimatedAreaWarning: 'Measure.',
+      palettes: [],
+      surfaceType: 'Plaster',
+    });
+    const headers = {
+      'content-type': 'application/json',
+      'x-forwarded-for': '198.51.100.43',
+    };
+
+    for (let count = 0; count < 10; count += 1) {
+      await analyzeHandler(
+        request({ base64Image: 'not base64!' }, { headers }),
+        response(),
+      );
+    }
+    for (let count = 0; count < 10; count += 1) {
+      const res = response();
+      await analyzeHandler(request({ base64Image: 'YWJj' }, { headers }), res);
+      expectJson(res, 200, expect.any(Object));
+    }
+    const limitedResponse = response();
+
+    await analyzeHandler(
+      request({ base64Image: 'YWJj' }, { headers }),
+      limitedResponse,
+    );
+
+    expectJson(limitedResponse, 429, { error: 'Too many requests' });
+    expect(mockedAnalyze).toHaveBeenCalledTimes(10);
+  });
+
+  it('shares one provider budget across all Gemini endpoints', async () => {
+    mockedAnalyze.mockResolvedValue({
+      condition: 'Good',
+      description: 'Wall.',
+      estimatedAreaWarning: 'Measure.',
+      palettes: [],
+      surfaceType: 'Plaster',
+    });
+    mockedVisualize.mockResolvedValue('data:image/jpeg;base64,ZGVm');
+    mockedGenerateShoppingList.mockResolvedValue({
+      estimatedLaborCostGHS: 200,
+      installationNotes: 'Prepare first.',
+      items: [],
+      totalMaterialCostGHS: 500,
+    });
+    const headers = {
+      'content-type': 'application/json',
+      'x-forwarded-for': '198.51.100.44',
+    };
+
+    for (let count = 0; count < 4; count += 1) {
+      await analyzeHandler(
+        request({ base64Image: 'YWJj' }, { headers }),
+        response(),
+      );
+    }
+    for (let count = 0; count < 3; count += 1) {
+      await visualizeHandler(
+        request(
+          {
+            base64Image: 'YWJj',
+            colorHex: '#AABBCC',
+            colorName: 'Cloud White',
+          },
+          { headers },
+        ),
+        response(),
+      );
+    }
+    for (let count = 0; count < 3; count += 1) {
+      await shoppingListHandler(
+        request(
+          {
+            area: 20,
+            condition: 'Good',
+            selectedColor: 'Cloud White',
+            surfaceType: 'Plaster',
+          },
+          { headers },
+        ),
+        response(),
+      );
+    }
+    const limitedResponse = response();
+
+    await visualizeHandler(
+      request(
+        {
+          base64Image: 'YWJj',
+          colorHex: '#AABBCC',
+          colorName: 'Cloud White',
+        },
+        { headers },
+      ),
+      limitedResponse,
+    );
+
+    expectJson(limitedResponse, 429, { error: 'Too many requests' });
+    expect(mockedAnalyze).toHaveBeenCalledTimes(4);
+    expect(mockedVisualize).toHaveBeenCalledTimes(3);
+    expect(mockedGenerateShoppingList).toHaveBeenCalledTimes(3);
   });
 });
