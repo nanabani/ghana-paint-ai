@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import analyzeHandler from '../analyze';
 import shoppingListHandler from '../shopping-list';
@@ -19,6 +19,15 @@ vi.mock('./gemini', () => ({
 const mockedAnalyze = vi.mocked(analyzeImageForPaint);
 const mockedGenerateShoppingList = vi.mocked(generateShoppingList);
 const mockedVisualize = vi.mocked(visualizeColor);
+const originalGeminiApiKey = process.env.GEMINI_API_KEY;
+
+afterEach(() => {
+  if (originalGeminiApiKey === undefined) {
+    delete process.env.GEMINI_API_KEY;
+  } else {
+    process.env.GEMINI_API_KEY = originalGeminiApiKey;
+  }
+});
 
 const request = (
   body: unknown,

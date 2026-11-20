@@ -127,6 +127,11 @@ const isString = (value: unknown): value is string => typeof value === 'string';
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
+const isImageMimeType = (value: unknown): value is string =>
+  typeof value === 'string' &&
+  value.length <= 100 &&
+  /^image\/[A-Za-z0-9][A-Za-z0-9.+-]*$/.test(value);
+
 export const validateAnalysisResult = (value: unknown): AnalysisResult => {
   if (
     !isRecord(value) ||
@@ -284,6 +289,9 @@ Apply uniformly. Preserve windows, doors, furniture, sky, vegetation.`;
   if (responseParts) {
     for (const part of responseParts) {
       if (part.inlineData?.data) {
+        if (!isImageMimeType(part.inlineData.mimeType)) {
+          throw new Error('Invalid visualization image response');
+        }
         const inputBase64 = base64Image.replace(
           /^data:image\/[^;]+;base64,/,
           '',

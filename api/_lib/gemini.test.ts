@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sdk = vi.hoisted(() => {
   const generateContent = vi.fn();
@@ -64,6 +64,16 @@ const shoppingList = {
   ],
   totalMaterialCostGHS: 500,
 };
+
+const originalGeminiApiKey = process.env.GEMINI_API_KEY;
+
+afterEach(() => {
+  if (originalGeminiApiKey === undefined) {
+    delete process.env.GEMINI_API_KEY;
+  } else {
+    process.env.GEMINI_API_KEY = originalGeminiApiKey;
+  }
+});
 
 describe('Gemini response validation', () => {
   it('accepts a complete analysis result', () => {
@@ -178,6 +188,26 @@ describe('Gemini server operations', () => {
     expect(request.contents.parts).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ cachedContent: expect.anything() })]),
     );
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['non-image', 'text/plain'],
+    ['oversized', `image/${'a'.repeat(100)}`],
+  ])('rejects a visualization with a %s MIME type', async (_name, mimeType) => {
+    sdk.generateContent.mockResolvedValueOnce({
+      candidates: [
+        {
+          content: {
+            parts: [{ inlineData: { data: 'ZGVm', mimeType } }],
+          },
+        },
+      ],
+    });
+
+    await expect(
+      visualizeColor('YWJj', 'Cloud White', '#AABBCC'),
+    ).rejects.toThrow('Invalid visualization image response');
   });
 
   it('requires all shopping schema fields and validates parsed JSON', async () => {
